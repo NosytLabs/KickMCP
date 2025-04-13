@@ -1455,55 +1455,34 @@ const httpServer = require('http').createServer(app);
 // WebSocket server setup
 const wss = new WebSocket.Server({ server: httpServer, path: '/ws' });
 
-wss.on('connection', (ws, req) => {
-  const sessionId = req.headers['x-session-id'] || Date.now().toString();
-  const session = {
-    id: sessionId,
-    ws,
-    lastPing: Date.now(),
-    timeout: setTimeout(() => {
-      logger.info('Session timeout', { sessionId });
-      ws.close();
-    }, TIMEOUT)
-  };
-
-  sessions.set(sessionId, session);
-
-  // Send session ID to client
-  ws.send(JSON.stringify({ type: 'session', sessionId }));
-
-  // Setup ping interval
-  const pingInterval = setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.ping();
-      session.lastPing = Date.now();
-    }
-  }, PING_INTERVAL);
-
-  ws.on('message', async (message) => {
-    try {
-      const request = JSON.parse(message);
-      const response = await server.receive(request);
-      ws.send(JSON.stringify(response));
-    } catch (error) {
-      logger.error('WebSocket message error:', { error: error.message });
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        error: handleError(error)
-      }));
-    }
-  });
-
-  ws.on('close', () => {
-    clearInterval(pingInterval);
-    clearTimeout(session.timeout);
-    sessions.delete(sessionId);
-    logger.info('WebSocket connection closed', { sessionId });
-  });
-
-  ws.on('error', (error) => {
-    logger.error('WebSocket error:', { error: error.message, sessionId });
-  });
+wss.on('connection', (ws) => {
+    const sessionId = crypto.randomBytes(16).toString('hex');
+    sessions.set(sessionId, ws);
+    
+    // Set up ping interval
+    const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.ping();
+        }
+    }, PING_INTERVAL);
+    
+    // Handle timeout
+    const timeout = setTimeout(() => {
+        ws.close();
+        sessions.delete(sessionId);
+        clearInterval(pingInterval);
+    }, TIMEOUT);
+    
+    ws.on('pong', () => {
+        clearTimeout(timeout);
+        timeout.refresh();
+    });
+    
+    ws.on('close', () => {
+        clearInterval(pingInterval);
+        clearTimeout(timeout);
+        sessions.delete(sessionId);
+    });
 });
 
 // IP whitelist middleware
