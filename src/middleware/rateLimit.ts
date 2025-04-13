@@ -22,7 +22,7 @@ export const createRateLimiter = (config: RateLimitConfig) => {
       res.status(429).json({
         error: {
           message: 'Rate limit exceeded',
-          type: 'RATE_LIMIT_ERROR',
+          status: 429,
           retryAfter: res.getHeader('Retry-After')
         }
       });
@@ -44,4 +44,7 @@ export const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // limit each IP to 10 requests per windowMs
   message: 'Too many requests from this IP, please try again after 1 minute'
-}); 
+});
+
+// Export default rate limiter for use in middleware
+export const rateLimit = defaultRateLimiter; 

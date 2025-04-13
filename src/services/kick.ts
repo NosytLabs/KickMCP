@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { logger } from '../utils/logger';
-import { KickApiError } from '../types/api';
+import { KickApiError } from '../utils/errors';
 
 export class KickService {
   private readonly baseUrl: string;
@@ -27,7 +27,14 @@ export class KickService {
       return response.data;
     } catch (error) {
       logger.error('Kick API Error:', error);
-      throw new KickApiError(error.response?.data?.message || 'API request failed');
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>;
+        throw new KickApiError(
+          axiosError.response?.data?.message || 'API request failed',
+          axiosError.response?.status || 500
+        );
+      }
+      throw new KickApiError('Unknown API error occurred', 500);
     }
   }
 

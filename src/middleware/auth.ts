@@ -15,13 +15,13 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      throw new KickApiError('No authorization header provided', 'AUTH_ERROR');
+      throw new KickApiError('No authorization header provided', 401);
     }
 
     const [type, token] = authHeader.split(' ');
 
     if (type !== 'Bearer' || !token) {
-      throw new KickApiError('Invalid authorization header format', 'AUTH_ERROR');
+      throw new KickApiError('Invalid authorization header format', 401);
     }
 
     // Here you would typically validate the token against your auth service
@@ -39,14 +39,14 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       return res.status(401).json({
         error: {
           message: error.message,
-          type: error.type
+          status: error.statusCode
         }
       });
     }
     return res.status(401).json({
       error: {
         message: 'Authentication failed',
-        type: 'AUTH_ERROR'
+        status: 401
       }
     });
   }

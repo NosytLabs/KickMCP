@@ -1,4 +1,7 @@
-import { Express } from 'express';
+import express, { Express } from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import compression from 'compression';
 import { errorHandler } from '../utils/errors';
 import { validateRequest } from '../utils/validation';
 import { rateLimit } from './rateLimit';
@@ -19,7 +22,7 @@ export const setupMiddleware = (app: Express) => {
   // Custom middleware
   app.use(rateLimit);
   app.use(authenticate);
-  app.use(validateRequest);
+  app.use((req, res, next) => validateRequest({} as any)(req, res, next));
 
   // Error handling
   app.use(errorHandler);

@@ -2,45 +2,97 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { logger } from '../utils/logger';
 import { KickService } from './kick';
 
-export function setupWebSocket(wss: WebSocketServer, kickService: KickService) {
+export const setupWebSocket = (wss: WebSocketServer, kickService: KickService) => {
   wss.on('connection', (ws: WebSocket) => {
-    logger.info('Client connected');
+    logger.info('WebSocket client connected');
 
-    // Setup ping/pong for connection health check
-    const pingInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.ping();
-      }
-    }, Number(process.env.WEBSOCKET_PING_INTERVAL) || 30000);
-
-    ws.on('pong', () => {
-      // Connection is alive
-    });
-
-    ws.on('message', async (message: string) => {
+    ws.on('message', async (message: Buffer) => {
       try {
-        const data = JSON.parse(message);
-        // Handle incoming messages
-        // Implement your message handling logic here
+        const data = JSON.parse(message.toString());
+        logger.debug('Received message:', data);
+
+        // Handle different message types
+        switch (data.type) {
+          case 'PING':
+            ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
+            break;
+
+          case 'SUBSCRIBE_CHANNEL':
+            if (!data.channelId) {
+              ws.send(JSON.stringify({ 
+                type: 'ERROR', 
+                message: 'Channel ID is required' 
+              }));
+              break;
+            }
+            
+            try {
+              const channelInfo = await kickService.getChannelInfo(data.channelId);
+              ws.send(JSON.stringify({ 
+                type: 'CHANNEL_INFO', 
+                data: channelInfo 
+              }));
+            } catch (error) {
+              if (error instanceof Error) {
+                ws.send(JSON.stringify({ 
+                  type: 'ERROR', 
+                  message: error.message 
+                }));
+              } else {
+                ws.send(JSON.stringify({ 
+                  type: 'ERROR', 
+                  message: 'Unknown error occurred' 
+                }));
+              }
+            }
+            break;
+
+          default:
+            ws.send(JSON.stringify({ 
+              type: 'ERROR', 
+              message: `Unknown message type: ${data.type}` 
+            }));
+        }
       } catch (error) {
-        logger.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({ error: 'Invalid message format' }));
+        logger.error('WebSocket error:', error);
+        if (error instanceof Error) {
+          ws.send(JSON.stringify({ 
+            type: 'ERROR', 
+            message: `Error processing message: ${error.message}` 
+          }));
+        } else {
+          ws.send(JSON.stringify({ 
+            type: 'ERROR', 
+            message: 'Unknown error occurred' 
+          }));
+        }
       }
     });
 
     ws.on('close', () => {
-      clearInterval(pingInterval);
-      logger.info('Client disconnected');
+      logger.info('WebSocket client disconnected');
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
       logger.error('WebSocket error:', error);
-      clearInterval(pingInterval);
     });
+
+    // Send welcome message
+    ws.send(JSON.stringify({ 
+      type: 'WELCOME', 
+      message: 'Connected to Kick MCP WebSocket server' 
+    }));
   });
 
-  // Handle server errors
-  wss.on('error', (error) => {
-    logger.error('WebSocket server error:', error);
-  });
-} 
+  // Handle ping/pong to keep connections alive
+  const pingInterval = Number(process.env.WEBSOCKET_PING_INTERVAL) || 30000;
+  setInterval(() => {
+    wss.clients.forEach((ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.ping();
+      }
+    });
+  }, pingInterval);
+
+  return wss;
+}; 
