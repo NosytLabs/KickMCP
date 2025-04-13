@@ -17,11 +17,15 @@ COPY src/ ./src/
 COPY config/ ./config/
 COPY scripts/ ./scripts/
 
+# Create dist directory
+RUN mkdir -p dist
+
 # Build TypeScript
 RUN npm run build
 
-# Clean up devDependencies
-RUN npm ci --only=production
+# Clean up devDependencies and source files
+RUN npm ci --only=production && \
+    rm -rf src/ config/ scripts/ .gitignore .dockerignore .eslintrc.json .prettierrc tsconfig.json
 
 # Set environment variables
 ENV NODE_ENV=production
