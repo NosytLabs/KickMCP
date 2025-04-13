@@ -2,24 +2,17 @@
 startCommand:
   type: stdio
   configSchema:
-    type: object
-    required:
-      - kickApiKey
-    properties:
-      kickApiKey:
-        type: string
-        description: "API key for authenticating with the Kick platform"
-      port:
-        type: integer
-        description: "Port number for the server to listen on"
-        default: 3000
-  commandFunction: |
+    # JSON Schema defining the configuration options for the MCP.
+    {}
+  commandFunction:
+    # A function that produces the CLI command to start the MCP on stdio.
+    |-
     (config) => ({
-      command: "node",
-      args: ["dist/index.js"],
-      env: {
-        KICK_API_KEY: config.kickApiKey,
-        PORT: config.port?.toString() || "3000",
-        NODE_ENV: "production"
+      "command": "node",
+      "args": [
+        "dist/index.js"
+      ],
+      "env": {
+        ...
       }
     }) 
