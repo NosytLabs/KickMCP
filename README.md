@@ -162,6 +162,14 @@ To run the server in HTTP mode for local development or API access, set the `HTT
 
 ### Installation
 
+#### Installing via Smithery
+
+To install Kick MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@NosytLabs/kickmcp):
+
+```bash
+npx -y @smithery/cli install @NosytLabs/kickmcp --client claude
+```
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/NosytLabs/KickMCP.git
