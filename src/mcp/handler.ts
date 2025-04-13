@@ -69,7 +69,12 @@ export const setupMCPHandler = (kickService: KickService): void => {
         },
         completion: false,
         embeddings: false,
-        tools: true
+        tools: {
+          // Add tool-specific capabilities if needed
+          enabled: true,
+          toolExecutionMode: 'synchronous',
+          toolExecutionApiVersion: '1.0'
+        }
       }
     };
   });
