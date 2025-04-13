@@ -5,6 +5,7 @@ A high-performance Model Context Protocol (MCP) server implementation for the Ki
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MCP Version](https://img.shields.io/badge/MCP-v1.0-blue.svg)](https://modelcontextprotocol.com)
 [![Docker](https://img.shields.io/badge/Docker-Ready-brightgreen.svg)](https://docs.docker.com/)
+[![smithery badge](https://smithery.ai/badge/@NosytLabs/kickmcp)](https://smithery.ai/server/@NosytLabs/kickmcp)
 
 ## 🌟 Features
 
