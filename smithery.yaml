@@ -1,0 +1,91 @@
+name: kick-mcp
+version: 1.0.0
+description: A secure MCP server for the Kick streaming platform API
+
+# Smithery.ai configuration
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    properties:
+      kickApiKey:
+        type: string
+        description: Kick API key for authentication
+      port:
+        type: number
+        description: Port to run the server on
+        default: 3001
+      rateLimit:
+        type: object
+        properties:
+          windowMs:
+            type: number
+            description: Time window for rate limiting in milliseconds
+            default: 900000
+          max:
+            type: number
+            description: Maximum number of requests per window
+            default: 100
+    required: ["kickApiKey"]
+  commandFunction: |
+    (config) => ({
+      command: "node",
+      args: ["dist/index.js"],
+      env: {
+        NODE_ENV: "production",
+        KICK_API_KEY: config.kickApiKey,
+        PORT: config.port || 3001,
+        RATE_LIMIT_WINDOW_MS: config.rateLimit?.windowMs || 900000,
+        RATE_LIMIT_MAX: config.rateLimit?.max || 100,
+        NODE_OPTIONS: "--max-old-space-size=512"
+      }
+    })
+
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: .
+  dockerBuildArgs:
+    - NODE_ENV=production
+  dockerBuildOptions:
+    - --no-cache
+    - --platform=linux/amd64
+    - --progress=plain
+
+# Server metadata
+metadata:
+  capabilities:
+    jsonrpc: "2.0"
+    websocket: true
+    authentication:
+      type: "oauth2"
+      flow: "authorization_code"
+      scopes: [
+        "user:read",
+        "user:write",
+        "chat:read",
+        "chat:write",
+        "channel:read",
+        "channel:write",
+        "stream:read",
+        "stream:write",
+        "moderation:read",
+        "moderation:write"
+      ]
+  security:
+    headers:
+      - "X-Content-Type-Options: nosniff"
+      - "X-Frame-Options: DENY"
+      - "X-XSS-Protection: 1; mode=block"
+      - "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+    rateLimit:
+      windowMs: 900000
+      max: 100
+  health:
+    endpoint: "/health"
+    interval: "30s"
+    timeout: "3s"
+    retries: 3
+  tools:
+    endpoint: "/tools"
+    authentication: false 
