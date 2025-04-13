@@ -25,6 +25,7 @@
     "winston": "^3.11.0",
     "node-cache": "^5.1.2",
     "rate-limiter-flexible": "^2.4.1",
+    "axios": "^1.6.0",
     "rimraf": "^5.0.5"
   },
   "devDependencies": {

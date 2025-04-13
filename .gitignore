@@ -4,33 +4,39 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Build output
+dist/
+build/
+
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# Build output
-dist/
-build/
-
-# Cache and logs
-.cache/
-logs/
-*.log
-
-# IDE and editor files
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Coverage
+coverage/
+
+# Cache
+.npm/
+.eslintcache
 
 # Test files
 *.test.js
 *.spec.js
-coverage/
-jest.config.js
-jest.*.config.js
 
 # Temporary files
 *.tmp

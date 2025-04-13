@@ -2,6 +2,11 @@ name: kick-mcp
 version: 1.0.0
 description: A secure MCP server for the Kick streaming platform API
 
+# Build configuration
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: .
+
 # Server configuration
 startCommand:
   type: stdio
@@ -9,8 +14,6 @@ startCommand:
     type: object
     required:
       - kickApiKey
-      - port
-      - rateLimit
     properties:
       kickApiKey:
         type: string
@@ -44,17 +47,6 @@ startCommand:
         description: Logging level
         enum: [debug, info, warn, error]
         default: info
-      cache:
-        type: object
-        properties:
-          enabled:
-            type: boolean
-            default: true
-          ttl:
-            type: integer
-            description: Cache time-to-live in seconds
-            minimum: 60
-            default: 3600
       websocket:
         type: object
         properties:
@@ -71,15 +63,6 @@ startCommand:
             description: WebSocket ping timeout in milliseconds
             minimum: 1000
             default: 5000
-      errorHandling:
-        type: object
-        properties:
-          showStack:
-            type: boolean
-            default: false
-          logErrors:
-            type: boolean
-            default: true
   commandFunction: |
     (config) => ({
       command: "node",
@@ -88,25 +71,14 @@ startCommand:
         NODE_ENV: "production",
         KICK_API_KEY: config.kickApiKey,
         PORT: config.port,
-        RATE_LIMIT_WINDOW_MS: config.rateLimit.windowMs,
-        RATE_LIMIT_MAX: config.rateLimit.max,
+        RATE_LIMIT_WINDOW_MS: config.rateLimit?.windowMs,
+        RATE_LIMIT_MAX: config.rateLimit?.max,
         LOG_LEVEL: config.logLevel,
-        CACHE_ENABLED: config.cache?.enabled,
-        CACHE_TTL: config.cache?.ttl,
         WEBSOCKET_ENABLED: config.websocket?.enabled,
         WEBSOCKET_PING_INTERVAL: config.websocket?.pingInterval,
-        WEBSOCKET_PING_TIMEOUT: config.websocket?.pingTimeout,
-        ERROR_SHOW_STACK: config.errorHandling?.showStack,
-        ERROR_LOG_ERRORS: config.errorHandling?.logErrors
+        WEBSOCKET_PING_TIMEOUT: config.websocket?.pingTimeout
       }
     })
-
-# Build configuration
-build:
-  dockerfile: Dockerfile
-  dockerBuildPath: .
-  dockerBuildArgs:
-    - NODE_ENV=production
 
 # Server metadata
 metadata:
