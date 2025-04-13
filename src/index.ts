@@ -1,18 +1,24 @@
-const express = require('express');
-const axios = require('axios');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const { JSONRPCServer } = require('json-rpc-2.0');
-const WebSocket = require('ws');
-const NodeCache = require('node-cache');
-const winston = require('winston');
-const rateLimit = require('express-rate-limit');
-const RedisStore = require('rate-limit-redis');
-const Redis = require('ioredis');
-const helmet = require('helmet');
-const prometheus = require('prom-client');
-const crypto = require('crypto');
-require('dotenv').config();
+import { Express, Request, Response, NextFunction } from 'express';
+import { WebSocketServer } from 'ws';
+import { JSONRPCServer } from 'json-rpc-2.0';
+import { Server } from 'http';
+import { Cache } from 'node-cache';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
+import { createLogger, format, transports } from 'winston';
+import helmet from 'helmet';
+import cors from 'cors';
+import compression from 'compression';
+import dotenv from 'dotenv';
+import axios from 'axios';
+import bodyParser from 'body-parser';
+import { WebSocket } from 'ws';
+import { NodeCache } from 'node-cache';
+import { winston } from 'winston';
+import { rateLimit } from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import { Redis } from 'ioredis';
+import { prometheus } from 'prom-client';
+import { crypto } from 'crypto';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -99,9 +105,26 @@ const validateParams = (params, requiredFields) => {
   }
 };
 
-const makeKickRequest = async (endpoint, method = 'GET', data = null, headers = {}) => {
+interface KickRequestParams {
+  access_token?: string;
+  [key: string]: any;
+}
+
+interface KickResponse {
+  data?: any;
+  error?: {
+    code: number;
+    message: string;
+  };
+}
+
+const makeKickRequest = async (
+  method: string,
+  endpoint: string,
+  params: KickRequestParams
+): Promise<KickResponse> => {
   try {
-    const cacheKey = `${method}:${endpoint}:${JSON.stringify(data)}:${JSON.stringify(headers)}`;
+    const cacheKey = `${method}:${endpoint}:${JSON.stringify(params)}`;
     
     if (method === 'GET') {
       const cachedData = cache.get(cacheKey);
@@ -109,7 +132,7 @@ const makeKickRequest = async (endpoint, method = 'GET', data = null, headers = 
     }
 
     const url = `${KICK_API_BASE_URL}${endpoint}`;
-    const response = await axios({ method, url, headers, data });
+    const response = await axios({ method, url, headers: { Authorization: `Bearer ${params.access_token}` }, data: params });
     
     if (method === 'GET') {
       cache.set(cacheKey, response.data);
@@ -125,25 +148,17 @@ const makeKickRequest = async (endpoint, method = 'GET', data = null, headers = 
 const chatMethods = {
     getChatMessages: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/messages`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/chat/messages`, params);
     },
     
     sendChatMessage: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'message']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/messages`, 'POST', {
-            message: params.message
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/chat/messages`, params);
     },
     
     getChatSettings: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/settings`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/chat/settings`, params);
     }
 };
 
@@ -151,23 +166,17 @@ const chatMethods = {
 const channelMethods = {
     getChannelInfo: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}`, params);
     },
     
     getChannelFollowers: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/followers`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/followers`, params);
     },
     
     getChannelSubscribers: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/subscribers`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/subscribers`, params);
     }
 };
 
@@ -175,16 +184,12 @@ const channelMethods = {
 const streamMethods = {
     getStreamInfo: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream`, params);
     },
     
     getStreamChatters: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/chatters`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/chatters`, params);
     }
 };
 
@@ -192,86 +197,62 @@ const streamMethods = {
 const additionalUserMethods = {
     getUserClips: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/clips', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/clips', params);
     },
     
     getUserVideos: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/videos', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/videos', params);
     },
     
     getUserHighlights: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/highlights', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/highlights', params);
     },
     
     getUserScheduledStreams: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/scheduled-streams', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/scheduled-streams', params);
     },
     
     getUserNotifications: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/notifications', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/notifications', params);
     },
     
     getUserWallet: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/wallet', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/wallet', params);
     },
     
     getUserGifts: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/gifts', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/gifts', params);
     },
     
     getUserEmotes: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/emotes', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/emotes', params);
     },
     
     getUserBadges: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/badges', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/badges', params);
     },
     
     getUserFollows: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/follows', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/follows', params);
     },
     
     getUserBlockedUsers: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/blocked', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/blocked', params);
     },
     
     getUserSubscriptions: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/subscriptions', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/subscriptions', params);
     }
 };
 
@@ -279,142 +260,102 @@ const additionalUserMethods = {
 const additionalChannelMethods = {
     getChannelClips: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/clips`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/clips`, params);
     },
     
     getChannelVideos: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/videos`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/videos`, params);
     },
     
     getChannelHighlights: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/highlights`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/highlights`, params);
     },
     
     getChannelScheduledStreams: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/scheduled-streams`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/scheduled-streams`, params);
     },
     
     getChannelChatRules: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/rules`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/chat/rules`, params);
     },
     
     getChannelChatCommands: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/commands`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/chat/commands`, params);
     },
     
     getChannelCategories: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/categories`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/categories`, params);
     },
     
     getChannelTags: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/tags`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/tags`, params);
     },
     
     getChannelGifts: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/gifts`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/gifts`, params);
     },
     
     getChannelRaids: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/raids`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/raids`, params);
     },
     
     getChannelHosts: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/hosts`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/hosts`, params);
     },
     
     getChannelEmotes: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/emotes`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/emotes`, params);
     },
     
     getChannelBadges: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/badges`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/badges`, params);
     },
     
     getChannelModerators: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/moderators`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/moderators`, params);
     },
     
     getChannelBans: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/bans`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/bans`, params);
     },
     
     getChannelVips: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/vips`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/vips`, params);
     },
     
     getChannelSubscriberBadges: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/subscriber-badges`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/subscriber-badges`, params);
     },
     
     updateChannelInfo: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'data']);
-        return makeKickRequest(`/channels/${params.channel_id}`, 'PATCH', params.data, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('PATCH', `/channels/${params.channel_id}`, params);
     },
     
     updateChannelSettings: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'data']);
-        return makeKickRequest(`/channels/${params.channel_id}/settings`, 'PATCH', params.data, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('PATCH', `/channels/${params.channel_id}/settings`, params);
     },
     
     updateChannelChatSettings: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'data']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/settings`, 'PATCH', params.data, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('PATCH', `/channels/${params.channel_id}/chat/settings`, params);
     }
 };
 
@@ -422,107 +363,77 @@ const additionalChannelMethods = {
 const additionalStreamMethods = {
     getStreamViewers: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/viewers`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/viewers`, params);
     },
     
     getStreamCategories: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/categories`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/categories`, params);
     },
     
     getStreamTags: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/tags`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/tags`, params);
     },
     
     getStreamStats: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/stats`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/stats`, params);
     },
     
     getStreamClips: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/clips`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/clips`, params);
     },
     
     getStreamHighlights: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/highlights`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/highlights`, params);
     },
     
     getStreamMarkers: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/markers`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/markers`, params);
     },
     
     getStreamPoll: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/poll`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/poll`, params);
     },
     
     getStreamPredictions: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/predictions`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/predictions`, params);
     },
     
     getStreamRaids: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/raids`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/raids`, params);
     },
     
     getStreamHosts: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/hosts`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/stream/hosts`, params);
     },
     
     startStream: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/start`, 'POST', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/start`, params);
     },
     
     endStream: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/end`, 'POST', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/end`, params);
     },
     
     updateStreamInfo: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'data']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream`, 'PATCH', params.data, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('PATCH', `/channels/${params.channel_id}/stream`, params);
     },
     
     updateStreamSettings: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'data']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/settings`, 'PATCH', params.data, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('PATCH', `/channels/${params.channel_id}/stream/settings`, params);
     }
 };
 
@@ -530,51 +441,32 @@ const additionalStreamMethods = {
 const chatManagementMethods = {
     banUser: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'user_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/ban`, 'POST', {
-            user_id: params.user_id
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/chat/ban`, params);
     },
     
     unbanUser: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'user_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/unban`, 'POST', {
-            user_id: params.user_id
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/chat/unban`, params);
     },
     
     timeoutUser: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'user_id', 'duration']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/timeout`, 'POST', {
-            user_id: params.user_id,
-            duration: params.duration
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/chat/timeout`, params);
     },
     
     deleteMessage: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'message_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/messages/${params.message_id}`, 'DELETE', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('DELETE', `/channels/${params.channel_id}/chat/messages/${params.message_id}`, params);
     },
     
     clearChat: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/clear`, 'POST', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/chat/clear`, params);
     },
     
     getChatUserInfo: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'user_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/chat/users/${params.user_id}`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/channels/${params.channel_id}/chat/users/${params.user_id}`, params);
     }
 };
 
@@ -582,34 +474,22 @@ const chatManagementMethods = {
 const moderationMethods = {
     addModerator: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'user_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/moderators`, 'POST', {
-            user_id: params.user_id
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/moderators`, params);
     },
     
     removeModerator: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'user_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/moderators/${params.user_id}`, 'DELETE', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('DELETE', `/channels/${params.channel_id}/moderators/${params.user_id}`, params);
     },
     
     addVIP: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'user_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/vips`, 'POST', {
-            user_id: params.user_id
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/vips`, params);
     },
     
     removeVIP: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'user_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/vips/${params.user_id}`, 'DELETE', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('DELETE', `/channels/${params.channel_id}/vips/${params.user_id}`, params);
     }
 };
 
@@ -617,49 +497,27 @@ const moderationMethods = {
 const streamInteractionMethods = {
     createPoll: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'title', 'options', 'duration']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/poll`, 'POST', {
-            title: params.title,
-            options: params.options,
-            duration: params.duration
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/poll`, params);
     },
     
     endPoll: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'poll_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/poll/${params.poll_id}/end`, 'POST', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/poll/${params.poll_id}/end`, params);
     },
     
     createPrediction: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'title', 'options', 'duration']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/prediction`, 'POST', {
-            title: params.title,
-            options: params.options,
-            duration: params.duration
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/prediction`, params);
     },
     
     endPrediction: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'prediction_id', 'winning_outcome_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/prediction/${params.prediction_id}/end`, 'POST', {
-            winning_outcome_id: params.winning_outcome_id
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/prediction/${params.prediction_id}/end`, params);
     },
     
     createMarker: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'description']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/marker`, 'POST', {
-            description: params.description
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/marker`, params);
     }
 };
 
@@ -682,7 +540,7 @@ const webhookSecurityMethods = {
     },
     
     getPublicKey: async () => {
-        const response = await makeKickRequest('/public-key', 'GET');
+        const response = await makeKickRequest('GET', '/public-key', {});
         return response.public_key;
     }
 };
@@ -691,27 +549,17 @@ const webhookSecurityMethods = {
 const eventTypeMethods = {
     subscribeToEvents: async (params) => {
         validateParams(params, ['access_token', 'events']);
-        return makeKickRequest('/events/subscribe', 'POST', {
-            events: params.events
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', '/events/subscribe', params);
     },
     
     unsubscribeFromEvents: async (params) => {
         validateParams(params, ['access_token', 'events']);
-        return makeKickRequest('/events/unsubscribe', 'POST', {
-            events: params.events
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', '/events/unsubscribe', params);
     },
     
     getEventSubscriptions: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/events/subscriptions', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/events/subscriptions', params);
     }
 };
 
@@ -719,30 +567,22 @@ const eventTypeMethods = {
 const livestreamMethods = {
     getLivestreams: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/livestreams', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/livestreams', params);
     },
     
     getLivestreamBySlug: async (params) => {
         validateParams(params, ['access_token', 'slug']);
-        return makeKickRequest(`/livestreams/${params.slug}`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/livestreams/${params.slug}`, params);
     },
     
     getLivestreamCategories: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/livestreams/categories', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/livestreams/categories', params);
     },
     
     getLivestreamTags: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/livestreams/tags', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/livestreams/tags', params);
     }
 };
 
@@ -750,23 +590,17 @@ const livestreamMethods = {
 const categoriesMethods = {
     getCategories: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/categories', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/categories', params);
     },
     
     getCategoryBySlug: async (params) => {
         validateParams(params, ['access_token', 'slug']);
-        return makeKickRequest(`/categories/${params.slug}`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/categories/${params.slug}`, params);
     },
     
     getCategoryStreams: async (params) => {
         validateParams(params, ['access_token', 'slug']);
-        return makeKickRequest(`/categories/${params.slug}/streams`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/categories/${params.slug}/streams`, params);
     }
 };
 
@@ -774,32 +608,22 @@ const categoriesMethods = {
 const additionalWebhookMethods = {
     getWebhookPayloads: async (params) => {
         validateParams(params, ['access_token', 'event_type']);
-        return makeKickRequest(`/webhooks/payloads/${params.event_type}`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/webhooks/payloads/${params.event_type}`, params);
     },
     
     retryWebhook: async (params) => {
         validateParams(params, ['access_token', 'webhook_id', 'message_id']);
-        return makeKickRequest(`/webhooks/${params.webhook_id}/retry`, 'POST', {
-            message_id: params.message_id
-        }, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/webhooks/${params.webhook_id}/retry`, params);
     },
     
     getWebhookDeliveryStatus: async (params) => {
         validateParams(params, ['access_token', 'webhook_id']);
-        return makeKickRequest(`/webhooks/${params.webhook_id}/deliveries`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/webhooks/${params.webhook_id}/deliveries`, params);
     },
     
     getWebhookEvents: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/webhooks/events', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/webhooks/events', params);
     }
 };
 
@@ -807,16 +631,12 @@ const additionalWebhookMethods = {
 const additionalEventTypeMethods = {
     getEventTypes: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/events/types', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/events/types', params);
     },
     
     getEventTypeSchema: async (params) => {
         validateParams(params, ['access_token', 'event_type']);
-        return makeKickRequest(`/events/types/${params.event_type}/schema`, 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', `/events/types/${params.event_type}/schema`, params);
     }
 };
 
@@ -824,30 +644,22 @@ const additionalEventTypeMethods = {
 const additionalStreamManagementMethods = {
     startStream: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/start`, 'POST', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/start`, params);
     },
     
     endStream: async (params) => {
         validateParams(params, ['access_token', 'channel_id']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/end`, 'POST', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('POST', `/channels/${params.channel_id}/stream/end`, params);
     },
     
     updateStreamInfo: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'data']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream`, 'PATCH', params.data, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('PATCH', `/channels/${params.channel_id}/stream`, params);
     },
     
     updateStreamSettings: async (params) => {
         validateParams(params, ['access_token', 'channel_id', 'data']);
-        return makeKickRequest(`/channels/${params.channel_id}/stream/settings`, 'PATCH', params.data, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('PATCH', `/channels/${params.channel_id}/stream/settings`, params);
     }
 };
 
@@ -1353,7 +1165,7 @@ const oauthMethods = {
     
     getAccessToken: async (params) => {
         validateParams(params, ['client_id', 'client_secret', 'code', 'redirect_uri']);
-        return makeKickRequest('/oauth2/token', 'POST', {
+        return makeKickRequest('POST', '/oauth2/token', {
             client_id: params.client_id,
             client_secret: params.client_secret,
             code: params.code,
@@ -1364,7 +1176,7 @@ const oauthMethods = {
     
     refreshAccessToken: async (params) => {
         validateParams(params, ['client_id', 'client_secret', 'refresh_token']);
-        return makeKickRequest('/oauth2/token', 'POST', {
+        return makeKickRequest('POST', '/oauth2/token', {
             client_id: params.client_id,
             client_secret: params.client_secret,
             refresh_token: params.refresh_token,
@@ -1377,23 +1189,17 @@ const oauthMethods = {
 const userMethods = {
     getUserProfile: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me', null, { Authorization: `Bearer ${params.access_token}` });
     },
     
     updateUserProfile: async (params) => {
         validateParams(params, ['access_token', 'data']);
-        return makeKickRequest('/users/me', 'PATCH', params.data, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('PATCH', '/users/me', params, { Authorization: `Bearer ${params.access_token}` });
     },
     
     getUserSubscriptions: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/users/me/subscriptions', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/users/me/subscriptions', null, { Authorization: `Bearer ${params.access_token}` });
     }
 };
 
@@ -1401,7 +1207,7 @@ const userMethods = {
 const additionalAuthMethods = {
     getAppAccessToken: async (params) => {
         validateParams(params, ['client_id', 'client_secret']);
-        return makeKickRequest('/oauth2/token', 'POST', {
+        return makeKickRequest('POST', '/oauth2/token', {
             client_id: params.client_id,
             client_secret: params.client_secret,
             grant_type: 'client_credentials'
@@ -1410,16 +1216,12 @@ const additionalAuthMethods = {
     
     validateToken: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/oauth2/validate', 'GET', null, {
-            Authorization: `Bearer ${params.access_token}`
-        });
+        return makeKickRequest('GET', '/oauth2/validate', null, { Authorization: `Bearer ${params.access_token}` });
     },
     
     revokeToken: async (params) => {
         validateParams(params, ['access_token']);
-        return makeKickRequest('/oauth2/revoke', 'POST', {
-            token: params.access_token
-        });
+        return makeKickRequest('POST', '/oauth2/revoke', { token: params.access_token });
     }
 };
 
@@ -1452,38 +1254,87 @@ Object.entries(allMethods).forEach(([name, method]) => {
 // Create HTTP server
 const httpServer = require('http').createServer(app);
 
-// WebSocket server setup
-const wss = new WebSocket.Server({ server: httpServer, path: '/ws' });
+// WebSocket configuration
+const wsConfig = {
+  enabled: process.env.WEBSOCKET_ENABLED === 'true',
+  pingInterval: parseInt(process.env.WEBSOCKET_PING_INTERVAL || '30000', 10),
+  pingTimeout: parseInt(process.env.WEBSOCKET_PING_TIMEOUT || '5000', 10)
+};
 
-wss.on('connection', (ws) => {
-    const sessionId = crypto.randomBytes(16).toString('hex');
-    sessions.set(sessionId, ws);
+// Error handling configuration
+const errorConfig = {
+  showStack: process.env.ERROR_SHOW_STACK === 'true',
+  logErrors: process.env.ERROR_LOG_ERRORS === 'true'
+};
+
+// Error handling middleware
+interface AppError extends Error {
+  status?: number;
+  code?: string;
+}
+
+app.use((err: AppError, req: Request, res: Response, next: NextFunction) => {
+  const status = err.status || 500;
+  const message = err.message || 'Internal Server Error';
+  
+  // Log the error
+  console.error(`[${new Date().toISOString()}] Error: ${message}`, {
+    status,
+    code: err.code,
+    path: req.path,
+    method: req.method,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+
+  // Send error response
+  res.status(status).json({
+    error: {
+      message,
+      code: err.code,
+      status,
+      timestamp: new Date().toISOString()
+    }
+  });
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason: Error | any, promise: Promise<any>) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error: Error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// WebSocket server setup
+if (wsConfig.enabled) {
+  const wss = new WebSocketServer({ server });
+  
+  wss.on('connection', (ws: WebSocket) => {
+    logger.info('New WebSocket connection');
     
-    // Set up ping interval
     const pingInterval = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.ping();
-        }
-    }, PING_INTERVAL);
-    
-    // Handle timeout
-    const timeout = setTimeout(() => {
-        ws.close();
-        sessions.delete(sessionId);
-        clearInterval(pingInterval);
-    }, TIMEOUT);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.ping();
+      }
+    }, wsConfig.pingInterval);
     
     ws.on('pong', () => {
-        clearTimeout(timeout);
-        timeout.refresh();
+      logger.debug('Received pong');
     });
     
     ws.on('close', () => {
-        clearInterval(pingInterval);
-        clearTimeout(timeout);
-        sessions.delete(sessionId);
+      logger.info('WebSocket connection closed');
+      clearInterval(pingInterval);
     });
-});
+    
+    ws.on('error', (error: Error) => {
+      logger.error('WebSocket error:', error);
+    });
+  });
+}
 
 // IP whitelist middleware
 const ipWhitelist = process.env.IP_WHITELIST ? process.env.IP_WHITELIST.split(',') : [];
@@ -1553,32 +1404,39 @@ app.get('/metrics', async (req, res) => {
     }
 });
 
-// Enhanced health check
-app.get('/health', async (req, res) => {
-    const health = {
-        status: 'ok',
-        version: process.env.npm_package_version,
-        uptime: process.uptime(),
-        sessions: sessions.size,
-        redis: {
-            status: 'ok',
-            connected: redis.status === 'ready'
-        },
-        memory: {
-            total: process.memoryUsage().heapTotal,
-            used: process.memoryUsage().heapUsed
-        }
-    };
-    
-    try {
-        await redis.ping();
-    } catch (error) {
-        health.redis.status = 'error';
-        health.redis.error = error.message;
-        health.status = 'error';
-    }
-    
-    res.json(health);
+// Enhanced health check endpoint
+app.get('/health', (req: Request, res: Response) => {
+  const healthInfo = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: {
+      rss: process.memoryUsage().rss,
+      heapTotal: process.memoryUsage().heapTotal,
+      heapUsed: process.memoryUsage().heapUsed,
+      external: process.memoryUsage().external
+    },
+    cpu: {
+      usage: process.cpuUsage()
+    },
+    environment: process.env.NODE_ENV,
+    version: process.env.npm_package_version
+  };
+
+  res.json(healthInfo);
+});
+
+// Public endpoints middleware
+const publicEndpoints = process.env.PUBLIC_ENDPOINTS?.split(',') || ['/tools/list', '/initialize'];
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (publicEndpoints.includes(req.path)) {
+    return next();
+  }
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
 });
 
 // Tools endpoint (no authentication required)
@@ -1591,6 +1449,31 @@ app.get('/tools', (req, res) => {
     }))
   });
 });
+
+// Configuration validation middleware
+const validateConfig = (req: Request, res: Response, next: NextFunction) => {
+  const requiredConfig = [
+    'KICK_API_KEY',
+    'PORT',
+    'RATE_LIMIT_WINDOW_MS',
+    'RATE_LIMIT_MAX'
+  ];
+
+  const missingConfig = requiredConfig.filter(key => !process.env[key]);
+  
+  if (missingConfig.length > 0) {
+    logger.error('Missing required configuration', { missingConfig });
+    return res.status(500).json({
+      error: 'Server configuration error',
+      message: `Missing required configuration: ${missingConfig.join(', ')}`
+    });
+  }
+
+  next();
+};
+
+// Apply configuration validation
+app.use(validateConfig);
 
 // Start server
 httpServer.listen(port, () => {

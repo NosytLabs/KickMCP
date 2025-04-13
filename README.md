@@ -233,21 +233,6 @@ KICK_API_BASE_URL=https://kick.com/api/v2
 ```bash
 GET /health
 ```
-```json
-{
-  "status": "ok",
-  "version": "1.0.0",
-  "uptime": 1234567,
-  "redis": {
-    "status": "ok",
-    "connected": true
-  },
-  "memory": {
-    "total": 1024,
-    "used": 512
-  }
-}
-```
 
 ## 🔍 Debugging
 
@@ -284,6 +269,66 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Kick API Documentation](https://kick.com/api/docs)
 - [Model Context Protocol](https://modelcontextprotocol.com)
 - [Smithery](https://smithery.dev)
+
+## 🔧 Smithery Deployment
+
+### Prerequisites
+- Smithery account
+- Docker installed locally
+- MCP Inspector installed
+
+### Local Testing
+```bash
+# Test with MCP Inspector
+npx @modelcontextprotocol/inspector node dist/index.js
+
+# Test with CLI
+npx @wong2/mcp-cli node dist/index.js
+```
+
+### Deployment Steps
+1. Add server to Smithery:
+   ```bash
+   smithery add server @NosytLabs/kickmcp
+   ```
+
+2. Configure deployment:
+   ```bash
+   smithery config set @NosytLabs/kickmcp kickApiKey=your_api_key
+   smithery config set @NosytLabs/kickmcp port=3001
+   ```
+
+3. Deploy:
+   ```bash
+   smithery deploy @NosytLabs/kickmcp
+   ```
+
+### WebSocket Handling
+The server implements automatic WebSocket reconnection with exponential backoff:
+- Initial retry delay: 1 second
+- Maximum retries: 5
+- Maximum delay: 30 seconds
+- Session affinity: Enabled
+
+### Testing WebSocket Connection
+```bash
+# Test WebSocket connection
+npx wscat -c ws://localhost:3001/ws
+
+# Test with authentication
+npx wscat -c "ws://localhost:3001/ws?access_token=your_token"
+```
+
+### Health Checks
+```bash
+# Test health endpoint
+curl http://localhost:3001/health
+```
+
+### Monitoring
+- WebSocket connections: `/metrics/ws`
+- API requests: `/metrics/api`
+- Health status: `/health`
 
 ---
 

@@ -2,32 +2,84 @@ name: kick-mcp
 version: 1.0.0
 description: A secure MCP server for the Kick streaming platform API
 
-# Smithery.ai configuration
+# Server configuration
 startCommand:
   type: stdio
   configSchema:
-    # JSON Schema defining the configuration options for the MCP.
     type: object
+    required:
+      - kickApiKey
+      - port
+      - rateLimit
     properties:
       kickApiKey:
         type: string
-        description: Kick API key for authentication
+        description: API key for Kick platform authentication
+        minLength: 32
+        maxLength: 64
       port:
-        type: number
-        description: Port to run the server on
+        type: integer
+        description: Port number for the server
+        minimum: 1024
+        maximum: 65535
         default: 3001
       rateLimit:
         type: object
+        required:
+          - windowMs
+          - max
         properties:
           windowMs:
-            type: number
+            type: integer
             description: Time window for rate limiting in milliseconds
+            minimum: 1000
             default: 900000
           max:
-            type: number
+            type: integer
             description: Maximum number of requests per window
+            minimum: 1
             default: 100
-    required: ["kickApiKey"]
+      logLevel:
+        type: string
+        description: Logging level
+        enum: [debug, info, warn, error]
+        default: info
+      cache:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+            default: true
+          ttl:
+            type: integer
+            description: Cache time-to-live in seconds
+            minimum: 60
+            default: 3600
+      websocket:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+            default: true
+          pingInterval:
+            type: integer
+            description: WebSocket ping interval in milliseconds
+            minimum: 1000
+            default: 30000
+          pingTimeout:
+            type: integer
+            description: WebSocket ping timeout in milliseconds
+            minimum: 1000
+            default: 5000
+      errorHandling:
+        type: object
+        properties:
+          showStack:
+            type: boolean
+            default: false
+          logErrors:
+            type: boolean
+            default: true
   commandFunction: |
     (config) => ({
       command: "node",
@@ -35,12 +87,21 @@ startCommand:
       env: {
         NODE_ENV: "production",
         KICK_API_KEY: config.kickApiKey,
-        PORT: config.port || 3001,
-        RATE_LIMIT_WINDOW_MS: config.rateLimit?.windowMs || 900000,
-        RATE_LIMIT_MAX: config.rateLimit?.max || 100
+        PORT: config.port,
+        RATE_LIMIT_WINDOW_MS: config.rateLimit.windowMs,
+        RATE_LIMIT_MAX: config.rateLimit.max,
+        LOG_LEVEL: config.logLevel,
+        CACHE_ENABLED: config.cache?.enabled,
+        CACHE_TTL: config.cache?.ttl,
+        WEBSOCKET_ENABLED: config.websocket?.enabled,
+        WEBSOCKET_PING_INTERVAL: config.websocket?.pingInterval,
+        WEBSOCKET_PING_TIMEOUT: config.websocket?.pingTimeout,
+        ERROR_SHOW_STACK: config.errorHandling?.showStack,
+        ERROR_LOG_ERRORS: config.errorHandling?.logErrors
       }
     })
 
+# Build configuration
 build:
   dockerfile: Dockerfile
   dockerBuildPath: .
@@ -50,37 +111,45 @@ build:
 # Server metadata
 metadata:
   capabilities:
-    jsonrpc: "2.0"
-    websocket: true
-    authentication:
-      type: "oauth2"
-      flow: "authorization_code"
-      scopes: [
-        "user:read",
-        "user:write",
-        "chat:read",
-        "chat:write",
-        "channel:read",
-        "channel:write",
-        "stream:read",
-        "stream:write",
-        "moderation:read",
-        "moderation:write"
-      ]
+    - chat
+    - channels
+    - streams
+    - users
+    - moderation
+    - webhooks
+    - websocket
   security:
-    headers:
-      - "X-Content-Type-Options: nosniff"
-      - "X-Frame-Options: DENY"
-      - "X-XSS-Protection: 1; mode=block"
-      - "Strict-Transport-Security: max-age=31536000; includeSubDomains"
-    rateLimit:
-      windowMs: 900000
-      max: 100
-  health:
-    endpoint: "/health"
-    interval: "30s"
-    timeout: "3s"
-    retries: 3
-  tools:
-    endpoint: "/tools"
-    authentication: false 
+    authentication: required
+    rateLimiting: enabled
+    caching: enabled
+    errorHandling: enabled
+  protocols:
+    - http
+    - websocket
+  healthCheck:
+    endpoint: /health
+    interval: 30s
+    timeout: 3s
+  logging:
+    level: info
+    format: json
+    transport: console
+  initialization:
+    method: initialize
+    publicAccess: true
+    endpoints:
+      - path: /tools/list
+        public: true
+        description: List all available tools without authentication
+      - path: /initialize
+        public: true
+        description: Initialize the server without authentication
+  storage:
+    type: ephemeral
+    note: "Persistent data requires external database"
+  websocket:
+    reconnect: true
+    maxRetries: 5
+    backoff: exponential
+    sessionAffinity: true
+    idleTimeout: 5m 
