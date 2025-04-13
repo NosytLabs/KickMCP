@@ -2,13 +2,49 @@
 startCommand:
   type: stdio
   configSchema:
-    # JSON Schema defining the configuration options for the MCP.
-    {}
-  commandFunction: |-
+    type: object
+    required:
+      - kickApiKey
+    properties:
+      kickApiKey:
+        type: string
+        description: "API key for authenticating with the Kick platform"
+      port:
+        type: integer
+        description: "Port number for the server to listen on"
+        default: 3000
+        minimum: 1
+        maximum: 65535
+      rateLimit:
+        type: object
+        description: "Rate limiting configuration"
+        properties:
+          windowMs:
+            type: integer
+            description: "Time window in milliseconds"
+            default: 900000
+            minimum: 1000
+          maxRequests:
+            type: integer
+            description: "Maximum number of requests per window"
+            default: 100
+            minimum: 1
+        required: ["windowMs", "maxRequests"]
+      logLevel:
+        type: string
+        description: "Logging level"
+        enum: ["error", "warn", "info", "debug"]
+        default: "info"
+  commandFunction: |
     (config) => ({
-      "command": "node",
-      "args": [
-        "dist/index.js"
-      ],
-      "env": {}
+      command: "node",
+      args: ["dist/index.js"],
+      env: {
+        KICK_API_KEY: config.kickApiKey,
+        PORT: config.port?.toString() || "3000",
+        NODE_ENV: "production",
+        RATE_LIMIT_WINDOW: config.rateLimit?.windowMs?.toString() || "900000",
+        RATE_LIMIT_MAX: config.rateLimit?.maxRequests?.toString() || "100",
+        LOG_LEVEL: config.logLevel || "info"
+      }
     }) 

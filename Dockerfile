@@ -25,7 +25,7 @@ RUN npm run build
 
 # Clean up build dependencies and source files
 RUN apk del python3 make g++ && \
-    rm -rf src/ config/ scripts/ .gitignore .dockerignore .eslintrc.json .prettierrc tsconfig.json
+    rm -rf src/ config/ scripts/ .gitignore .dockerignore .eslintrc.json .prettierrc
 
 # Install production dependencies only
 RUN npm ci --only=production
