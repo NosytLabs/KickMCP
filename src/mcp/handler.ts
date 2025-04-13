@@ -8,7 +8,7 @@ const toolSchemas = [
   {
     name: 'getChannelInfo',
     description: 'Get channel information',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: {
         channelId: {
@@ -22,7 +22,7 @@ const toolSchemas = [
   {
     name: 'getLivestreams',
     description: 'Get list of current livestreams',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: {}
     }
@@ -30,7 +30,7 @@ const toolSchemas = [
   {
     name: 'getLivestreamBySlug',
     description: 'Get livestream by slug',
-    parameters: {
+    inputSchema: {
       type: 'object',
       properties: {
         slug: {
