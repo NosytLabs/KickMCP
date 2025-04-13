@@ -5,14 +5,7 @@
   "environment": {
     "SMITHERY_MODE": "true",
     "NODE_ENV": "production",
-    "LOG_LEVEL": "info",
-    "PORT": "3000"
-  },
-  "optionalEnvironment": {
-    "KICK_CLIENT_ID": "",
-    "KICK_CLIENT_SECRET": "",
-    "WEBHOOK_URL": "",
-    "WEBHOOK_SECRET": ""
+    "LOG_LEVEL": "info"
   },
   "startCommand": "npm run mcp:prod",
   "healthCheck": {
