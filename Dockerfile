@@ -1,34 +1,25 @@
-# Build stage
-FROM node:18-alpine AS builder
+FROM node:18-alpine
 
 WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
 
 # Copy package files
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install dependencies
+# Install all dependencies (including devDependencies for TypeScript compilation)
 RUN npm ci
 
-# Copy source files
-COPY src/ ./src/
+# Copy source code
+COPY . .
 
-# Build the application
+# Build TypeScript
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
+# Clean up devDependencies
 RUN npm ci --only=production
-
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
 
 # Set environment variables
 ENV NODE_ENV=production
