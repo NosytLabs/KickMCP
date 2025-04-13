@@ -3,6 +3,47 @@ import * as readline from 'readline';
 import { logger } from '../utils/logger';
 import { KickService } from '../services/kick';
 
+// Define tool schemas
+const toolSchemas = [
+  {
+    name: 'getChannelInfo',
+    description: 'Get channel information',
+    parameters: {
+      type: 'object',
+      properties: {
+        channelId: {
+          type: 'string',
+          description: 'Channel ID'
+        }
+      },
+      required: ['channelId']
+    }
+  },
+  {
+    name: 'getLivestreams',
+    description: 'Get list of current livestreams',
+    parameters: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'getLivestreamBySlug',
+    description: 'Get livestream by slug',
+    parameters: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Stream slug'
+        }
+      },
+      required: ['slug']
+    }
+  }
+  // Additional tool definitions can be added here
+];
+
 /**
  * Setup and handle JSON-RPC over stdin/stdout for MCP
  */
@@ -10,7 +51,25 @@ export const setupMCPHandler = (kickService: KickService): void => {
   // Create JSON-RPC server
   const jsonRpcServer = new JSONRPCServer();
 
-  // Register methods
+  // Register standard MCP methods
+  
+  // Initialize method - required by MCP protocol
+  jsonRpcServer.addMethod('initialize', async () => {
+    logger.info('MCP initialize request received');
+    return {
+      name: 'Kick MCP Server',
+      version: process.env.npm_package_version || '1.0.0',
+      vendor: 'NosytLabs'
+    };
+  });
+  
+  // List tools method - required by MCP protocol
+  jsonRpcServer.addMethod('tools/list', async () => {
+    logger.info('MCP tools/list request received');
+    return { tools: toolSchemas };
+  });
+
+  // Register API methods
   jsonRpcServer.addMethod('getChannelInfo', async (params: any) => {
     return kickService.getChannelInfo(params.channelId);
   });
@@ -22,8 +81,6 @@ export const setupMCPHandler = (kickService: KickService): void => {
   jsonRpcServer.addMethod('getLivestreamBySlug', async (params: any) => {
     return kickService.getLivestreamBySlug(params.slug);
   });
-
-  // Add more methods as needed...
 
   // Create readline interface for stdin
   const rl = readline.createInterface({

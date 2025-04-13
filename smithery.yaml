@@ -1,0 +1,32 @@
+# Smithery.ai configuration
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - kickApiKey
+    properties:
+      kickApiKey:
+        type: string
+        description: "API key for authenticating with the Kick platform"
+      port:
+        type: integer
+        description: "Port number for the server to listen on"
+        default: 3000
+      logLevel:
+        type: string
+        description: "Logging level"
+        enum: ["error", "warn", "info", "debug"]
+        default: "info"
+  commandFunction: |
+    (config) => ({
+      command: "node",
+      args: ["dist/bin/mcp.js"],
+      env: {
+        KICK_API_KEY: config.kickApiKey,
+        PORT: config.port?.toString() || "3000",
+        NODE_ENV: "production",
+        MCP_MODE: "true",
+        LOG_LEVEL: config.logLevel || "info"
+      }
+    }) 
