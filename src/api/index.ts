@@ -11,4 +11,6 @@ router.get('/health', (req, res) => {
 // Error handling middleware
 router.use(errorHandler);
 
-export default router; 
+export const setupRoutes = (app: any) => {
+  app.use('/api', router);
+}; 

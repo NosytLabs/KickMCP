@@ -12,4 +12,11 @@ export const validateRequest = (schema: any) => {
       next(error);
     }
   };
+};
+
+export const validateConfig = (config: any) => {
+  if (!config.kickApiKey) {
+    throw new Error('Kick API key is required');
+  }
+  return true;
 }; 
