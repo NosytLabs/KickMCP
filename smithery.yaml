@@ -1,0 +1,43 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - kickClientId
+      - kickClientSecret
+    properties:
+      kickClientId:
+        type: string
+        description: OAuth Client ID for Kick API
+      kickClientSecret:
+        type: string
+        description: OAuth Client Secret for Kick API
+      port:
+        type: number
+        default: 3000
+        description: Port for the MCP server to listen on
+      logLevel:
+        type: string
+        default: info
+        description: Logging level for the server
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['dist/index.js', '--mcp'],
+      env: {
+        KICK_CLIENT_ID: config.kickClientId,
+        KICK_CLIENT_SECRET: config.kickClientSecret,
+        PORT: String(config.port || 3000),
+        LOG_LEVEL: config.logLevel || 'info'
+      }
+    })
+  exampleConfig:
+    kickClientId: dummy_client_id
+    kickClientSecret: dummy_client_secret
+    port: 3000
+    logLevel: info
