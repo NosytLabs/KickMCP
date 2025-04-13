@@ -37,8 +37,7 @@ startCommand:
         KICK_API_KEY: config.kickApiKey,
         PORT: config.port || 3001,
         RATE_LIMIT_WINDOW_MS: config.rateLimit?.windowMs || 900000,
-        RATE_LIMIT_MAX: config.rateLimit?.max || 100,
-        NODE_OPTIONS: "--max-old-space-size=512"
+        RATE_LIMIT_MAX: config.rateLimit?.max || 100
       }
     })
 
@@ -47,10 +46,6 @@ build:
   dockerBuildPath: .
   dockerBuildArgs:
     - NODE_ENV=production
-  dockerBuildOptions:
-    - --no-cache
-    - --platform=linux/amd64
-    - --progress=plain
 
 # Server metadata
 metadata:
