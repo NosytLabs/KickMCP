@@ -2,36 +2,17 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
-
-# Copy package files and TypeScript config
+# Copy package files
 COPY package*.json ./
-COPY tsconfig.json ./
 
-# Install all dependencies (including devDependencies for TypeScript)
+# Install dependencies
 RUN npm install
 
-# Copy source files
-COPY src/ ./src/
-COPY config/ ./config/
-COPY scripts/ ./scripts/
+# Copy application code
+COPY . .
 
-# Create dist directory
-RUN mkdir -p dist
-
-# Build TypeScript
+# Build the application
 RUN npm run build
 
-# Clean up build dependencies and source files
-RUN apk del python3 make g++ && \
-    rm -rf src/ config/ scripts/ .gitignore .dockerignore .eslintrc.json .prettierrc
-
-# Install production dependencies only
-RUN npm ci --only=production
-
-# Set environment variables
-ENV NODE_ENV=production
-
-# Start the server
+# Command will be provided by smithery.yaml
 CMD ["node", "dist/index.js"] 
