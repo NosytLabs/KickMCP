@@ -1,13 +1,4 @@
-name: kick-mcp
-version: 1.0.0
-description: A secure MCP server for the Kick streaming platform API
-
-# Build configuration
-build:
-  dockerfile: Dockerfile
-  dockerBuildPath: .
-
-# Server configuration
+# Smithery.ai configuration
 startCommand:
   type: stdio
   configSchema:
@@ -20,50 +11,4 @@ startCommand:
         "dist/index.js"
       ],
       "env": {}
-    })
-
-# Server metadata
-metadata:
-  capabilities:
-    - chat
-    - channels
-    - streams
-    - users
-    - moderation
-    - webhooks
-    - websocket
-  security:
-    authentication: required
-    rateLimiting: enabled
-    caching: enabled
-    errorHandling: enabled
-  protocols:
-    - http
-    - websocket
-  healthCheck:
-    endpoint: /health
-    interval: 30s
-    timeout: 3s
-  logging:
-    level: info
-    format: json
-    transport: console
-  initialization:
-    method: initialize
-    publicAccess: true
-    endpoints:
-      - path: /tools/list
-        public: true
-        description: List all available tools without authentication
-      - path: /initialize
-        public: true
-        description: Initialize the server without authentication
-  storage:
-    type: ephemeral
-    note: "Persistent data requires external database"
-  websocket:
-    reconnect: true
-    maxRetries: 5
-    backoff: exponential
-    sessionAffinity: true
-    idleTimeout: 5m 
+    }) 
