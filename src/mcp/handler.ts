@@ -57,7 +57,7 @@ export const setupMCPHandler = (kickService: KickService): void => {
   jsonRpcServer.addMethod('initialize', async () => {
     logger.info('MCP initialize request received');
     return {
-      protocolVersion: '0.3',
+      protocolVersion: '2024-11-05',
       serverInfo: {
         name: 'Kick MCP Server',
         version: process.env.npm_package_version || '1.0.0',
