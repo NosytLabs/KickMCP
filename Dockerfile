@@ -5,15 +5,17 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install all dependencies (including devDependencies for TypeScript compilation)
+# Install dependencies
 RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy source files
+COPY src/ ./src/
+COPY config/ ./config/
+COPY scripts/ ./scripts/
 
 # Build TypeScript
 RUN npm run build
