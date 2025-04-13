@@ -152,15 +152,25 @@ export class HttpServer {
     // This is just an example for one endpoint
     this.registerRoute('GET', '/api/channels/:id', async (ctx) => {
       const channelId = ctx.path.split('/').pop();
+      const accessToken = ctx.req.headers.authorization?.split(' ')[1];
       
       if (!channelId) {
         ctx.res.statusCode = 400;
         ctx.res.end(JSON.stringify({ error: 'Channel ID is required' }));
         return;
       }
+
+      if (!accessToken) {
+        ctx.res.statusCode = 401;
+        ctx.res.end(JSON.stringify({ error: 'Authentication required. Please provide an access token.' }));
+        return;
+      }
       
       try {
-        const result = await this.kickService.getChannelInfo({ channel_id: channelId });
+        const result = await this.kickService.getChannelInfo({ 
+          access_token: accessToken,
+          channel_id: channelId 
+        });
         ctx.res.statusCode = 200;
         ctx.res.setHeader('Content-Type', 'application/json');
         ctx.res.end(JSON.stringify(result));
