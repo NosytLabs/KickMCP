@@ -120,6 +120,14 @@ Each of these use cases can be implemented using the MCP server's comprehensive 
 
 ## 🚀 Quick Start Guide
 
+### Installing via Smithery
+
+To install Kick MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@NosytLabs/kickmcp):
+
+```bash
+npx -y @smithery/cli install @NosytLabs/kickmcp --client claude
+```
+
 ### Prerequisites
 - Node.js >= 18.0.0
 
