@@ -11,32 +11,15 @@ build:
 startCommand:
   type: stdio
   configSchema:
-    type: object
-    required:
-      - kickApiKey
-    properties:
-      kickApiKey:
-        type: string
-        description: API key for Kick platform authentication
-      port:
-        type: integer
-        description: Port number for the server
-        default: 3001
-      logLevel:
-        type: string
-        description: Logging level
-        enum: [debug, info, warn, error]
-        default: info
-  commandFunction: |
+    # JSON Schema defining the configuration options for the MCP.
+    {}
+  commandFunction: |-
     (config) => ({
-      command: "node",
-      args: ["dist/index.js"],
-      env: {
-        NODE_ENV: "production",
-        KICK_API_KEY: config.kickApiKey,
-        PORT: config.port,
-        LOG_LEVEL: config.logLevel
-      }
+      "command": "node",
+      "args": [
+        "dist/index.js"
+      ],
+      "env": {}
     })
 
 # Server metadata
