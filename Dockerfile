@@ -17,11 +17,8 @@ COPY src/ ./src/
 COPY config/ ./config/
 COPY scripts/ ./scripts/
 
-# Create dist directory
-RUN mkdir -p dist
-
-# Build TypeScript
-RUN npm run build
+# Create dist directory and build TypeScript
+RUN mkdir -p dist && npm run build
 
 # Clean up devDependencies and source files
 RUN npm ci --only=production && \
