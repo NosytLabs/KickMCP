@@ -1,0 +1,67 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - kickApiKey
+      - kickClientId
+      - kickClientSecret
+    properties:
+      kickApiKey:
+        type: string
+        description: Kick API Key for authentication
+      kickClientId:
+        type: string
+        description: Kick Client ID for OAuth
+      kickClientSecret:
+        type: string
+        description: Kick Client Secret for OAuth
+      webhookUrl:
+        type: string
+        default: ""
+        description: Webhook URL for receiving events
+      webhookSecret:
+        type: string
+        default: ""
+        description: Secret for webhook validation
+      port:
+        type: number
+        default: 3000
+        description: Port number to run the server
+      nodeEnv:
+        type: string
+        default: production
+        description: Node environment, e.g. 'development' or 'production'
+      logLevel:
+        type: string
+        default: info
+        description: Log level for the server
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['dist/index.js', '--mcp'],
+      env: {
+        PORT: config.port.toString(),
+        NODE_ENV: config.nodeEnv,
+        LOG_LEVEL: config.logLevel,
+        KICK_API_KEY: config.kickApiKey,
+        KICK_CLIENT_ID: config.kickClientId,
+        KICK_CLIENT_SECRET: config.kickClientSecret,
+        WEBHOOK_URL: config.webhookUrl,
+        WEBHOOK_SECRET: config.webhookSecret
+      }
+    })
+  exampleConfig:
+    kickApiKey: example_kick_api_key
+    kickClientId: example_client_id
+    kickClientSecret: example_client_secret
+    webhookUrl: http://localhost:3000/webhooks/kick
+    webhookSecret: example_webhook_secret
+    port: 3000
+    nodeEnv: production
+    logLevel: info
