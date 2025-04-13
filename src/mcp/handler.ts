@@ -57,9 +57,20 @@ export const setupMCPHandler = (kickService: KickService): void => {
   jsonRpcServer.addMethod('initialize', async () => {
     logger.info('MCP initialize request received');
     return {
-      name: 'Kick MCP Server',
-      version: process.env.npm_package_version || '1.0.0',
-      vendor: 'NosytLabs'
+      protocolVersion: '0.3',
+      serverInfo: {
+        name: 'Kick MCP Server',
+        version: process.env.npm_package_version || '1.0.0',
+        vendor: 'NosytLabs'
+      },
+      capabilities: {
+        authentication: {
+          type: 'oauth2'
+        },
+        completion: false,
+        embeddings: false,
+        tools: true
+      }
     };
   });
   
