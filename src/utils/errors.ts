@@ -9,6 +9,17 @@ export class AppError extends Error {
   }
 }
 
+export class KickApiError extends AppError {
+  constructor(
+    message: string,
+    public statusCode = 500,
+    public isOperational = true
+  ) {
+    super(statusCode, message, isOperational);
+    this.name = 'KickApiError';
+  }
+}
+
 export const errorHandler = (err: Error, req: any, res: any, next: any) => {
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({

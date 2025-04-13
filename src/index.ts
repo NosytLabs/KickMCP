@@ -10,7 +10,7 @@ import { setupCache } from './utils/cache';
 import { KickService } from './services/kick';
 
 // Initialize express app
-const app = express();
+export const app = express();
 const port = process.env.PORT || 3001;
 
 // Setup middleware
