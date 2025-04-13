@@ -1,7 +1,7 @@
 {
   "name": "Kick MCP Server",
   "description": "A Model Context Protocol server for Kick API integration",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "environment": {
     "SMITHERY_MODE": "true",
     "NODE_ENV": "production",
