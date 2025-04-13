@@ -10,6 +10,11 @@ import { setupCache } from './utils/cache';
 import { KickService } from './services/kick';
 import { setupMCPHandler } from './mcp/handler';
 
+// Determine mode based on environment variables
+// MCP mode is the default unless HTTP_MODE is explicitly set to true
+const isHttpMode = process.env.HTTP_MODE === 'true';
+const isMCPMode = !isHttpMode; // Default to MCP mode if HTTP_MODE is not set
+
 // Initialize express app regardless of mode
 export const app = express();
 const port = process.env.PORT || 3001;
@@ -21,12 +26,9 @@ const cache = setupCache();
 // Define server here at top level, initialized conditionally below
 let server: ReturnType<typeof app.listen> | null = null;
 
-// Check if running in MCP mode (stdin/stdout JSON-RPC)
-const isMCPMode = process.env.MCP_MODE === 'true';
-
 // Initialize based on mode
 if (isMCPMode) {
-  logger.info('Starting server in MCP mode');
+  logger.info('Starting server in MCP mode (stdin/stdout JSON-RPC)');
   setupMCPHandler(kickService);
 } else {
   // Standard HTTP/WebSocket server mode

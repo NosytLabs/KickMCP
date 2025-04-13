@@ -8,8 +8,8 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "HTTP_MODE=true node dist/index.js",
+    "dev": "HTTP_MODE=true ts-node-dev --respawn --transpile-only src/index.ts",
     "mcp": "ts-node src/bin/mcp.ts",
     "mcp:prod": "node dist/bin/mcp.js",
     "test": "jest",

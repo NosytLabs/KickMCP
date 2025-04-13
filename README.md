@@ -40,6 +40,24 @@ A high-performance Model Context Protocol (MCP) server implementation for the Ki
 - ✅ Automatic retries
 - ✅ Rate limit handling
 
+## 🔄 Operating Modes
+
+The server supports two distinct operating modes:
+
+### 1. MCP Mode (Default)
+- Uses JSON-RPC over stdin/stdout
+- Compatible with Smithery deployment and MCP Inspector
+- Supports standard MCP protocol methods (`initialize`, `tools/list`, etc.)
+- Start with: `npm run mcp` or `npm run mcp:prod`
+
+### 2. HTTP/WebSocket Mode
+- Exposes HTTP endpoints and WebSocket connections
+- Provides REST API endpoints for tools
+- Enables browser-based and HTTP client integrations
+- Start with: `npm start` or `npm run dev`
+
+To run the server in HTTP mode for local development or API access, set the `HTTP_MODE` environment variable to `true` or use the provided npm scripts.
+
 ## 📚 API Documentation
 
 ### Authentication Methods

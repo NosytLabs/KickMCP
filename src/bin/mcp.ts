@@ -2,11 +2,14 @@
 
 /**
  * MCP mode entry point
- * This script is used to start the server in MCP mode (stdin/stdout JSON-RPC)
+ * This script is used to start the server in MCP (stdin/stdout JSON-RPC) mode
+ * which is required for Smithery deployment and MCP Inspector.
  */
 
-// Set MCP mode environment variable
-process.env.MCP_MODE = 'true';
+// Make sure HTTP_MODE is not set, which would override the MCP mode
+if (process.env.HTTP_MODE) {
+  delete process.env.HTTP_MODE;
+}
 
 // Import the server
 import '../index'; 
