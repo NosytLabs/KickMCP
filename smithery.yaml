@@ -1,0 +1,44 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - kickClientId
+      - kickClientSecret
+    properties:
+      kickClientId:
+        type: string
+        description: Your Kick OAuth Client ID
+      kickClientSecret:
+        type: string
+        description: Your Kick OAuth Client Secret
+      port:
+        type: number
+        default: 3000
+        description: Port to run the server on
+      nodeEnv:
+        type: string
+        default: production
+        enum: [production, development]
+        description: Server environment
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['dist/index.js', '--mcp'],
+      env: {
+        PORT: config.port.toString(),
+        NODE_ENV: config.nodeEnv,
+        KICK_CLIENT_ID: config.kickClientId,
+        KICK_CLIENT_SECRET: config.kickClientSecret
+      }
+    })
+  exampleConfig:
+    kickClientId: your_client_id_here
+    kickClientSecret: your_client_secret_here
+    port: 3000
+    nodeEnv: production
