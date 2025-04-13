@@ -2,13 +2,17 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy only essential files
+# Copy package files
 COPY package*.json ./
-COPY tsconfig.json ./
-COPY src/ ./src/
 
-# Install and build
-RUN npm install && npm run build
+# Install dependencies
+RUN npm install
 
-# Start the server
+# Copy application code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Command will be provided by smithery.yaml
 CMD ["node", "dist/index.js"] 
