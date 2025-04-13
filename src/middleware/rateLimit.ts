@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import rateLimit from 'express-rate-limit';
+import expressRateLimit from 'express-rate-limit';
 import { logger } from '../utils/logger';
 
 interface RateLimitConfig {
@@ -11,7 +11,7 @@ interface RateLimitConfig {
 }
 
 export const createRateLimiter = (config: RateLimitConfig) => {
-  const limiter = rateLimit({
+  const limiter = expressRateLimit({
     windowMs: config.windowMs,
     max: config.max,
     message: config.message || 'Too many requests, please try again later.',
