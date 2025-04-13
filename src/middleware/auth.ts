@@ -2,7 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 import { KickApiError } from '../utils/errors';
 
-interface AuthRequest extends Request {
+// Extend the Express Request type
+export interface AuthRequest extends Request {
   user?: {
     id: string;
     username: string;
@@ -10,7 +11,7 @@ interface AuthRequest extends Request {
   };
 }
 
-export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void | Response> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -36,7 +37,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
   } catch (error) {
     logger.error('Authentication error:', error);
     if (error instanceof KickApiError) {
-      return res.status(401).json({
+      return res.status(error.statusCode).json({
         error: {
           message: error.message,
           status: error.statusCode

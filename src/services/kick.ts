@@ -11,7 +11,7 @@ export class KickService {
     this.apiKey = process.env.KICK_API_KEY || '';
   }
 
-  private async makeRequest(method: string, endpoint: string, params?: any) {
+  private async makeRequest<T>(method: string, endpoint: string, params?: any): Promise<T> {
     try {
       const response = await axios({
         method,
@@ -24,7 +24,7 @@ export class KickService {
         params: method === 'GET' ? params : undefined
       });
 
-      return response.data;
+      return response.data as T;
     } catch (error) {
       logger.error('Kick API Error:', error);
       if (axios.isAxiosError(error)) {
