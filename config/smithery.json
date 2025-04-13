@@ -1,0 +1,24 @@
+{
+  "name": "Kick MCP Server",
+  "description": "A Model Context Protocol server for Kick API integration",
+  "version": "1.0.0",
+  "environment": {
+    "SMITHERY_MODE": "true",
+    "NODE_ENV": "production",
+    "LOG_LEVEL": "info",
+    "PORT": "3000"
+  },
+  "optionalEnvironment": {
+    "KICK_CLIENT_ID": "",
+    "KICK_CLIENT_SECRET": "",
+    "WEBHOOK_URL": "",
+    "WEBHOOK_SECRET": ""
+  },
+  "startCommand": "npm run mcp:prod",
+  "healthCheck": {
+    "path": "/health",
+    "interval": 30,
+    "timeout": 5,
+    "retries": 3
+  }
+} 
