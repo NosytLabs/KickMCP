@@ -12,77 +12,261 @@
 
 </div>
 
-## 📋 Table of Contents
+<details>
+<summary>📋 Table of Contents</summary>
 
 - [Project Overview](#-project-overview)
 - [Quick Start](#-quick-start)
 - [Getting Started with Kick](#-getting-started-with-kick)
 - [Features](#-features)
-  - [Core Features](#core-features)
-  - [API Features](#api-features)
-  - [Advanced Features](#advanced-features)
 - [Installation](#-installation)
 - [Configuration](#-configuration)
 - [Usage](#-usage)
 - [Developer Guide](#-developer-guide)
 - [MCP Methods](#-mcp-methods)
 - [Use Cases](#-use-cases)
-  - [For Streamers](#for-streamers)
-  - [For Viewers](#for-viewers)
-  - [For Developers](#for-developers)
 - [AI Integration](#-ai-integration)
 - [Development](#-development)
 - [Contributing](#-contributing)
-- [License](#-license)
 - [Support](#-support)
-- [Acknowledgments](#-acknowledgments)
+- [License](#-license)
 
-## 🎯 Project Overview
+</details>
 
-The Kick MCP Server is a high-performance integration tool that enables AI models to interact with Kick's platform through a standardized interface. Built with TypeScript and Node.js, it provides a robust foundation for building AI-powered features for streamers and viewers.
+<details>
+<summary>🎯 Project Overview</summary>
+
+The Kick MCP Server is an unofficial integration tool that enables AI models to interact with Kick's platform through a standardized interface. It provides access to all 80+ Kick API endpoints, making it easier for developers to build AI-powered features for streamers and viewers.
 
 ### Key Features
-- 🔐 Secure OAuth 2.0 authentication with PKCE support
-- 🔄 Real-time event handling with WebSocket support
-- 🛡️ Enterprise-grade security with rate limiting
-- 📊 Advanced monitoring and analytics
-- 💾 Smart caching for optimal performance
-- 🤖 AI-ready architecture with standardized interfaces
+- Complete Kick API coverage (80+ endpoints)
+- Secure OAuth 2.0 authentication
+- Real-time event handling
+- Built-in rate limiting and error handling
+- Easy integration with AI models
 
 ### Important Note
 This is an unofficial project and is not affiliated with or endorsed by Kick. Use at your own risk. The API endpoints and functionality may change without notice.
 
-## 🚀 Quick Start
+</details>
+
+<details>
+<summary>🚀 Quick Start</summary>
 
 ### Option 1: Using Smithery (Recommended)
-The easiest way to get started is using Smithery. Just run:
-```bash
-npx -y @smithery/cli install @NosytLabs/kickmcp --client claude
-```
-This will:
-- Install the server
-- Set up all required configurations
-- Start the server automatically
-- No OAuth credentials required - Smithery handles authentication automatically
+The easiest way to get started is using Smithery. Here's a detailed guide:
 
-### Option 2: Manual Installation
-1. Clone the repository:
+1. **Install Smithery CLI**:
 ```bash
-git clone https://github.com/NosytLabs/KickMCP.git
-cd KickMCP
+npm install -g @smithery/cli
 ```
 
-2. Install dependencies:
+2. **Initialize Smithery**:
 ```bash
-npm install
+smithery init
 ```
 
-3. Start the server:
+3. **Configure Smithery**:
 ```bash
-npm run mcp
+# Set your Kick credentials
+smithery config set KICK_CLIENT_ID your_client_id
+smithery config set KICK_CLIENT_SECRET your_client_secret
+
+# Set your preferred AI model
+smithery config set AI_MODEL claude-3-opus-20240229
+
+# Set your preferred logging level
+smithery config set LOG_LEVEL info
 ```
 
-## 🎮 Getting Started with Kick
+4. **Install the MCP Server**:
+```bash
+smithery install @NosytLabs/kickmcp
+```
+
+5. **Start Using the Tools**:
+```bash
+# Example: Get OAuth URL
+smithery run @NosytLabs/kickmcp getOAuthUrl
+
+# Example: Get Access Token
+smithery run @NosytLabs/kickmcp getAccessToken --code your_auth_code
+
+# Example: Send Chat Message
+smithery run @NosytLabs/kickmcp sendChatMessage --channel_id 123 --message "Hello!"
+```
+
+<details>
+<summary>🔑 Access Token Management</summary>
+
+### Getting an Access Token
+1. **Get OAuth URL**:
+```bash
+smithery run @NosytLabs/kickmcp getOAuthUrl
+```
+
+2. **Authorize Application**:
+- Visit the returned URL in your browser
+- Log in to your Kick account
+- Grant the requested permissions
+- Copy the authorization code from the redirect URL
+
+3. **Exchange Code for Token**:
+```bash
+smithery run @NosytLabs/kickmcp getAccessToken --code your_auth_code
+```
+
+4. **Store Token Securely**:
+```bash
+# Store token in Smithery's secure storage
+smithery config set ACCESS_TOKEN your_access_token
+```
+
+### Token Refresh
+```bash
+# Automatically refresh expired tokens
+smithery run @NosytLabs/kickmcp refreshAccessToken
+
+# Manually refresh token
+smithery run @NosytLabs/kickmcp refreshAccessToken --refresh_token your_refresh_token
+```
+
+### Token Validation
+```bash
+# Validate token
+smithery run @NosytLabs/kickmcp validateToken --access_token your_access_token
+```
+
+</details>
+
+<details>
+<summary>🛠️ Tool Usage Guide</summary>
+
+### Authentication Tools
+```bash
+# Get OAuth URL
+smithery run @NosytLabs/kickmcp getOAuthUrl
+
+# Get Access Token
+smithery run @NosytLabs/kickmcp getAccessToken --code your_auth_code
+
+# Refresh Token
+smithery run @NosytLabs/kickmcp refreshAccessToken
+
+# Validate Token
+smithery run @NosytLabs/kickmcp validateToken
+```
+
+### Chat Tools
+```bash
+# Send Message
+smithery run @NosytLabs/kickmcp sendChatMessage --channel_id 123 --message "Hello!"
+
+# Get Chat Messages
+smithery run @NosytLabs/kickmcp getChatMessages --channel_id 123
+
+# Moderate Chat
+smithery run @NosytLabs/kickmcp timeoutUser --channel_id 123 --user_id 456 --duration 300
+```
+
+### Stream Tools
+```bash
+# Get Stream Info
+smithery run @NosytLabs/kickmcp getStreamInfo --channel_id 123
+
+# Update Stream Title
+smithery run @NosytLabs/kickmcp updateStreamInfo --channel_id 123 --title "New Title"
+
+# Get Stream Viewers
+smithery run @NosytLabs/kickmcp getStreamViewers --channel_id 123
+```
+
+### Analytics Tools
+```bash
+# Get Stream Stats
+smithery run @NosytLabs/kickmcp getStreamStats --channel_id 123
+
+# Get Chat Metrics
+smithery run @NosytLabs/kickmcp getChatMetrics --channel_id 123
+
+# Get Viewer Analytics
+smithery run @NosytLabs/kickmcp getViewerAnalytics --channel_id 123
+```
+
+### AI Integration Tools
+```bash
+# Analyze Chat Sentiment
+smithery run @NosytLabs/kickmcp analyzeChatSentiment --channel_id 123
+
+# Get Content Recommendations
+smithery run @NosytLabs/kickmcp getRecommendations --user_id 456
+
+# Create Smart Highlights
+smithery run @NosytLabs/kickmcp createSmartHighlight --channel_id 123 --duration 60
+```
+
+### Webhook Tools
+```bash
+# Create Webhook
+smithery run @NosytLabs/kickmcp createWebhook --url https://your-webhook-url.com --events stream.online,chat.message
+
+# List Webhooks
+smithery run @NosytLabs/kickmcp listWebhooks
+
+# Delete Webhook
+smithery run @NosytLabs/kickmcp deleteWebhook --webhook_id 123
+```
+
+### Channel Management Tools
+```bash
+# Emote Management
+smithery run @NosytLabs/kickmcp createChannelEmote --channel_id 123 --name "pepeHappy" --image_url "https://example.com/emote.png"
+smithery run @NosytLabs/kickmcp deleteChannelEmote --channel_id 123 --emote_id 456
+
+# Badge Management
+smithery run @NosytLabs/kickmcp createChannelBadge --channel_id 123 --name "VIP" --image_url "https://example.com/badge.png"
+smithery run @NosytLabs/kickmcp deleteChannelBadge --channel_id 123 --badge_id 456
+
+# VIP Management
+smithery run @NosytLabs/kickmcp addChannelVIP --channel_id 123 --user_id 456
+smithery run @NosytLabs/kickmcp removeChannelVIP --channel_id 123 --user_id 456
+
+# Moderator Management
+smithery run @NosytLabs/kickmcp addChannelModerator --channel_id 123 --user_id 456
+smithery run @NosytLabs/kickmcp removeChannelModerator --channel_id 123 --user_id 456
+
+# Chat Commands
+smithery run @NosytLabs/kickmcp createChatCommand --channel_id 123 --command "!hello" --response "Welcome to the stream!"
+smithery run @NosytLabs/kickmcp updateChatCommand --channel_id 123 --command_id 456 --response "New welcome message!"
+smithery run @NosytLabs/kickmcp deleteChatCommand --channel_id 123 --command_id 456
+```
+
+### Stream Management Tools
+```bash
+# Poll Management
+smithery run @NosytLabs/kickmcp getPollResults --channel_id 123 --poll_id 456
+
+# Prediction Management
+smithery run @NosytLabs/kickmcp getPredictionResults --channel_id 123 --prediction_id 456
+
+# Stream Markers
+smithery run @NosytLabs/kickmcp getStreamMarkers --channel_id 123 --start_time "2024-03-01" --end_time "2024-03-31"
+
+# Raid Management
+smithery run @NosytLabs/kickmcp startRaid --channel_id 123 --target_channel_id 456
+smithery run @NosytLabs/kickmcp cancelRaid --channel_id 123 --raid_id 456
+
+# Host Management
+smithery run @NosytLabs/kickmcp startHost --channel_id 123 --target_channel_id 456
+smithery run @NosytLabs/kickmcp endHost --channel_id 123 --host_id 456
+```
+
+</details>
+
+</details>
+
+<details>
+<summary>🎮 Getting Started with Kick</summary>
 
 ### 1. Create a Kick Account
 1. Visit [Kick.com](https://kick.com)
@@ -124,36 +308,10 @@ LOG_LEVEL=info
 # Linux: sudo apt install git
 ```
 
-### 4. Test Your Setup
-1. Start the server:
-```bash
-npm run mcp
-```
+</details>
 
-2. Open a new terminal and test the connection:
-```bash
-curl http://localhost:3000/health
-```
-
-3. Get your OAuth URL:
-```bash
-curl -X POST http://localhost:3000 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "getOAuthUrl",
-    "params": {
-      "client_id": "your_client_id",
-      "redirect_uri": "http://localhost:3000/auth/callback",
-      "scope": "user:read channel:read"
-    },
-    "id": 1
-  }'
-```
-
-4. Visit the returned URL in your browser to authorize your application
-
-## 🌟 Features
+<details>
+<summary>🌟 Features</summary>
 
 ### Core Features
 - 🔐 **Secure OAuth 2.0 Authentication**
@@ -220,775 +378,123 @@ curl -X POST http://localhost:3000 \
   - Third-party services
   - Custom extensions
 
-## 💡 Use Cases
+</details>
 
-### For Streamers
+<details>
+<summary>💡 Use Cases</summary>
 
-#### 1. Stream Management & Automation
+<div align="center">
+
+| For Streamers | For Viewers | For Developers |
+|--------------|-------------|----------------|
+| Stream Management & Automation | Enhanced Viewing Experience | Chat Bot Development |
+| Viewer Engagement & Rewards | Community Interaction | Analytics & Insights |
+| Content Creation & Highlights | Content Discovery | Integration Development |
+| Advanced Moderation | Chat Enhancement | Custom Features |
+| Revenue Optimization | Stream Notifications | Webhook Integration |
+
+</div>
+
+<details>
+<summary>For Streamers</summary>
+
 ```typescript
-// Comprehensive stream management
+// Stream Management Example
 const streamManager = new StreamManager({
   access_token: "your_token",
   channel_id: "your_channel"
 });
 
-// Advanced scheduling
+// Schedule recurring streams
 streamManager.scheduleRecurring({
   days: ["Monday", "Wednesday", "Friday"],
   time: "20:00",
-  duration: 180,
-  category: "Just Chatting",
-  autoStart: {
-    enabled: true,
-    delay: 5,
-    checkEquipment: true
-  },
-  autoEnd: {
-    enabled: true,
-    conditions: {
-      minViewers: 0,
-      maxDuration: 240
-    }
-  }
-});
-
-// Stream optimization
-streamManager.optimize({
-  bitrate: {
-    auto: true,
-    max: 6000,
-    min: 2500
-  },
-  quality: {
-    auto: true,
-    target: "1080p"
-  },
-  chat: {
-    slowMode: {
-      enabled: true,
-      interval: 3
-    },
-    emoteOnly: {
-      enabled: false
-    }
-  }
-});
-
-// Stream analytics
-streamManager.trackMetrics({
-  viewers: {
-    count: true,
-    demographics: true,
-    retention: true
-  },
-  chat: {
-    activity: true,
-    sentiment: true,
-    commands: true
-  },
-  revenue: {
-    subscriptions: true,
-    donations: true,
-    ads: true
-  }
+  duration: 180
 });
 ```
 
-#### 2. Viewer Engagement & Rewards
+</details>
+
+<details>
+<summary>For Viewers</summary>
+
 ```typescript
-// Advanced loyalty system
-const loyalty = new ViewerLoyalty({
-  access_token: "your_token",
-  channel_id: "your_channel"
-});
-
-// Multi-tier rewards
-loyalty.setupRewards({
-  points: {
-    base: 1,
-    bonus: {
-      subscriber: 2,
-      vip: 1.5,
-      moderator: 1.2
-    },
-    multipliers: {
-      chat: 0.1,
-      watch: 1,
-      gift: 5
-    }
-  },
-  tiers: [
-    {
-      level: 1,
-      points: 100,
-      rewards: ["Custom Emote", "Chat Color"]
-    },
-    {
-      level: 2,
-      points: 500,
-      rewards: ["VIP Status", "Custom Badge"]
-    },
-    {
-      level: 3,
-      points: 1000,
-      rewards: ["Moderator Role", "Custom Command"]
-    }
-  ],
-  challenges: {
-    daily: {
-      watch: 60,
-      chat: 10,
-      reward: 50
-    },
-    weekly: {
-      watch: 300,
-      chat: 50,
-      reward: 200
-    }
-  }
-});
-
-// Engagement tracking
-loyalty.trackEngagement({
-  metrics: {
-    watchTime: true,
-    chatActivity: true,
-    giftValue: true,
-    raidValue: true
-  },
-  notifications: {
-    milestones: true,
-    achievements: true,
-    rewards: true
-  }
-});
-```
-
-#### 3. Content Creation & Highlights
-```typescript
-// Advanced clip creation
-const clipCreator = new SmartClip({
-  access_token: "your_token",
-  channel_id: "your_channel"
-});
-
-// Smart moment detection
-clipCreator.detectMoments({
-  triggers: {
-    viewerSpike: {
-      threshold: 1.5,
-      duration: 30
-    },
-    chatActivity: {
-      messagesPerMinute: 50,
-      duration: 60
-    },
-    gameEvents: {
-      achievements: true,
-      kills: true,
-      deaths: true
-    }
-  },
-  analysis: {
-    sentiment: true,
-    excitement: true,
-    humor: true
-  }
-});
-
-// Clip management
-clipCreator.manageClips({
-  organization: {
-    autoTag: true,
-    categories: ["gameplay", "chat", "funny"],
-    quality: "best"
-  },
-  sharing: {
-    autoUpload: true,
-    platforms: ["youtube", "twitter"],
-    schedule: "after_stream"
-  }
-});
-```
-
-### For Viewers
-
-#### 1. Enhanced Viewing Experience
-```typescript
-// Advanced viewer experience
+// Enhanced Viewing Example
 const viewer = new EnhancedViewer({
   access_token: "your_token",
   channel_id: "favorite_channel"
 });
 
-// Comprehensive chat features
-viewer.setupChat({
-  features: {
-    emoteTranslator: {
-      enabled: true,
-      languages: ["en", "es", "fr"]
-    },
-    chatHighlights: {
-      enabled: true,
-      keywords: ["lol", "pog", "gg"],
-      users: ["moderators", "vips"]
-    },
-    autoMod: {
-      enabled: true,
-      sensitivity: "medium",
-      customRules: true
-    },
-    chatFilters: {
-      hideBots: true,
-      hideSubOnly: false,
-      highlightMods: true,
-      highlightVIPs: true,
-      customFilters: ["spam", "links", "caps"]
-    },
-    customThemes: {
-      darkMode: true,
-      fontSize: "medium",
-      chatWidth: "normal",
-      colors: {
-        background: "#1a1a1a",
-        text: "#ffffff",
-        highlights: "#ff4500"
-      }
-    }
-  },
-  notifications: {
-    streamStart: {
-      enabled: true,
-      platforms: ["discord", "email"],
-      sound: true
-    },
-    host: {
-      enabled: true,
-      platforms: ["discord"],
-      sound: true
-    },
-    raid: {
-      enabled: true,
-      platforms: ["discord"],
-      sound: true
-    },
-    giftSubs: {
-      enabled: true,
-      platforms: ["discord"],
-      minAmount: 5
-    },
-    milestones: {
-      enabled: true,
-      types: ["followers", "subscribers", "viewers"]
-    }
-  }
-});
-
-// Advanced bookmarking
-viewer.setupBookmarks({
-  features: {
-    autoBookmark: {
-      enabled: true,
-      triggers: ["viewerSpike", "chatActivity", "gameEvent"]
-    },
-    organization: {
-      folders: true,
-      tags: true,
-      search: true
-    },
-    sharing: {
-      enabled: true,
-      platforms: ["twitter", "discord"],
-      privacy: "public"
-    }
-  }
-});
-
-// Custom commands
-viewer.addCommands({
-  "!uptime": async () => {
-    const uptime = await getStreamUptime();
-    return `Stream has been live for ${uptime}`;
-  },
-  "!followage": async (user) => {
-    const followAge = await getFollowAge(user.id);
-    return `${user.name} has been following for ${followAge}`;
-  },
-  "!socials": () => "Follow us on Twitter: @streamer",
-  "!schedule": () => "Next stream: Tomorrow at 8 PM EST"
+// Setup custom notifications
+viewer.setupNotifications({
+  streamStart: true,
+  host: true,
+  raid: true
 });
 ```
 
-#### 2. Community Interaction
+</details>
+
+<details>
+<summary>For Developers</summary>
+
 ```typescript
-// Advanced community features
-const community = new CommunityManager({
-  access_token: "your_token"
-});
-
-// Comprehensive event tracking
-community.onEvent((event) => {
-  switch (event.type) {
-    case "host":
-      sendNotification(`🎉 ${event.host} is hosting ${event.target}!`);
-      break;
-    case "raid":
-      sendNotification(`⚔️ ${event.raider} raided with ${event.viewers} viewers!`);
-      break;
-    case "sub":
-      sendNotification(`🌟 ${event.user} subscribed for ${event.months} months!`);
-      break;
-    case "gift":
-      sendNotification(`🎁 ${event.gifter} gifted ${event.count} subs!`);
-      break;
-    case "follow":
-      sendNotification(`👋 ${event.user} started following!`);
-      break;
-    case "cheer":
-      sendNotification(`🎉 ${event.user} cheered ${event.amount} bits!`);
-      break;
-  }
-});
-
-// Advanced favorite management
-community.addFavorite("streamer_name", {
-  notifications: {
-    live: {
-      enabled: true,
-      platforms: ["discord", "email"],
-      sound: true
-    },
-    clips: {
-      enabled: true,
-      platforms: ["discord"],
-      minViews: 100
-    },
-    schedule: {
-      enabled: true,
-      platforms: ["discord"],
-      reminder: 30
-    },
-    highlights: {
-      enabled: true,
-      platforms: ["discord"],
-      minDuration: 60
-    },
-    announcements: {
-      enabled: true,
-      platforms: ["discord"],
-      importance: "high"
-    }
-  },
-  autoJoin: {
-    chat: true,
-    notifications: true,
-    raids: true
-  },
-  preferences: {
-    category: ["gaming", "just chatting"],
-    minViewers: 100,
-    maxViewers: 10000,
-    language: "en",
-    quality: "best"
-  }
-});
-
-// Community statistics
-community.trackStats({
-  channels: ["favorite_streamer1", "favorite_streamer2"],
-  metrics: {
-    watchTime: {
-      total: true,
-      daily: true,
-      weekly: true
-    },
-    chatActivity: {
-      messages: true,
-      commands: true,
-      emotes: true
-    },
-    subscriptions: {
-      total: true,
-      gifted: true,
-      renewed: true
-    },
-    gifts: {
-      total: true,
-      value: true,
-      topGifters: true
-    }
-  },
-  export: {
-    format: "csv",
-    interval: "weekly"
-  }
-});
-```
-
-#### 3. Content Discovery
-```typescript
-// Advanced content discovery
-const discover = new ContentDiscover({
-  access_token: "your_token"
-});
-
-// Comprehensive recommendations
-discover.getRecommendations({
-  preferences: {
-    categories: ["gaming", "just chatting"],
-    languages: ["en"],
-    minViewers: 100,
-    maxViewers: 10000,
-    streamQuality: ["1080p", "720p"],
-    tags: ["interactive", "family-friendly"],
-    schedule: {
-      timezone: "EST",
-      preferredHours: ["20:00", "21:00", "22:00"]
-    }
-  },
-  history: {
-    watchedChannels: true,
-    likedCategories: true,
-    chatActivity: true,
-    subscriptions: true
-  },
-  social: {
-    friends: true,
-    followed: true,
-    similar: true
-  }
-}).then(streams => {
-  streams.forEach(stream => {
-    console.log(`
-      Channel: ${stream.channel}
-      Title: ${stream.title}
-      Viewers: ${stream.viewers}
-      Uptime: ${stream.uptime}
-      Category: ${stream.category}
-      Tags: ${stream.tags.join(", ")}
-      Quality: ${stream.quality}
-      Language: ${stream.language}
-    `);
-  });
-});
-
-// Advanced search
-discover.searchStreams({
-  query: "gaming",
-  filters: {
-    liveOnly: true,
-    minViewers: 50,
-    maxViewers: 1000,
-    categories: ["gaming"],
-    languages: ["en"],
-    tags: ["family-friendly"],
-    quality: ["1080p", "720p"],
-    schedule: {
-      days: ["weekend"],
-      hours: ["evening"]
-    }
-  },
-  sortBy: "viewers",
-  limit: 20,
-  include: {
-    preview: true,
-    chatPreview: true,
-    categoryInfo: true
-  }
-});
-
-// Trending content
-discover.getTrending({
-  period: "today",
-  categories: ["gaming", "just chatting"],
-  limit: 10,
-  metrics: {
-    viewers: true,
-    chatActivity: true,
-    growth: true
-  }
-});
-```
-
-#### 4. Chat Enhancement
-```typescript
-// Advanced chat features
-const chat = new EnhancedChat({
-  access_token: "your_token",
-  channel_id: "favorite_channel"
-});
-
-// Comprehensive chat filters
-chat.setupFilters({
-  spam: {
-    enabled: true,
-    sensitivity: "medium",
-    action: "hide",
-    customPatterns: ["(.)\\1{4,}"]
-  },
-  links: {
-    enabled: true,
-    whitelist: ["kick.com", "youtube.com"],
-    action: "hide",
-    preview: true
-  },
-  emotes: {
-    showCustom: true,
-    showGlobal: true,
-    showSubscriber: true,
-    animation: true,
-    size: "medium"
-  },
-  badges: {
-    showMod: true,
-    showVIP: true,
-    showSubscriber: true,
-    custom: true
-  },
-  messages: {
-    maxLength: 500,
-    minCooldown: 1,
-    allowCommands: true
-  }
-});
-
-// Chat commands
-chat.addCommands({
-  "!commands": () => "Available commands: !uptime, !followage, !socials",
-  "!socials": () => "Follow us on Twitter: @streamer",
-  "!schedule": () => "Next stream: Tomorrow at 8 PM EST",
-  "!game": async () => {
-    const game = await getCurrentGame();
-    return `Currently playing: ${game}`;
-  },
-  "!viewers": async () => {
-    const count = await getViewerCount();
-    return `Current viewers: ${count}`;
-  }
-});
-
-// Chat statistics
-chat.trackStats({
-  metrics: {
-    messagesPerMinute: true,
-    uniqueChatters: true,
-    emoteUsage: true,
-    commandUsage: true,
-    userActivity: true,
-    messageLength: true
-  },
-  export: {
-    format: "csv",
-    interval: "daily",
-    include: {
-      rawData: true,
-      summaries: true,
-      charts: true
-    }
-  }
-});
-```
-
-#### 5. Stream Notifications
-```typescript
-// Comprehensive notification system
-const notifier = new StreamNotifier({
-  access_token: "your_token"
-});
-
-// Advanced notification setup
-notifier.setup({
-  channels: ["favorite_streamer1", "favorite_streamer2"],
-  events: {
-    streamStart: {
-      enabled: true,
-      platforms: ["discord", "email"],
-      message: "🎥 {channel} is live! Playing {game}",
-      sound: true,
-      priority: "high"
-    },
-    streamEnd: {
-      enabled: true,
-      platforms: ["discord"],
-      message: "👋 {channel} has ended their stream",
-      includeStats: true
-    },
-    host: {
-      enabled: true,
-      platforms: ["discord"],
-      message: "🎉 {host} is hosting {target}!",
-      sound: true
-    },
-    raid: {
-      enabled: true,
-      platforms: ["discord"],
-      message: "⚔️ {raider} raided with {viewers} viewers!",
-      sound: true
-    },
-    sub: {
-      enabled: true,
-      platforms: ["discord"],
-      message: "🌟 {user} subscribed for {months} months!",
-      minMonths: 1
-    },
-    gift: {
-      enabled: true,
-      platforms: ["discord"],
-      message: "🎁 {gifter} gifted {count} subs!",
-      minAmount: 5
-    }
-  },
-  preferences: {
-    quietHours: {
-      start: "23:00",
-      end: "08:00",
-      enabled: true,
-      exceptions: ["favorite_streamer1"]
-    },
-    minViewers: 50,
-    categories: ["gaming", "just chatting"],
-    quality: ["1080p", "720p"]
-  }
-});
-
-// Stream schedule management
-notifier.getSchedule({
-  channels: ["favorite_streamer1", "favorite_streamer2"],
-  days: 7,
-  includePast: false,
-  details: {
-    title: true,
-    category: true,
-    duration: true,
-    recurring: true
-  }
-}).then(schedule => {
-  schedule.forEach(stream => {
-    console.log(`
-      Channel: ${stream.channel}
-      Time: ${stream.startTime}
-      Duration: ${stream.duration}
-      Title: ${stream.title}
-      Category: ${stream.category}
-      Recurring: ${stream.recurring}
-    `);
-  });
-});
-```
-
-### For Developers
-
-#### 1. Chat Bot Development
-```typescript
-// Advanced chat bot
+// Chat Bot Example
 const bot = new AdvancedBot({
   access_token: "your_token",
   channel_id: "target_channel"
 });
 
-// Custom commands
+// Add custom commands
 bot.addCommand({
   name: "!stats",
   handler: async (user) => {
     const stats = await getUserStats(user.id);
-    return `Viewer Stats: ${stats.hoursWatched} hours watched, ${stats.messagesSent} messages`;
-  }
-});
-
-// Moderation features
-bot.addModeration({
-  rules: [
-    {
-      type: "spam",
-      action: "timeout",
-      duration: 300
-    },
-    {
-      type: "link",
-      action: "delete",
-      whitelist: ["kick.com"]
-    }
-  ]
-});
-
-// Event handling
-bot.onEvent((event) => {
-  switch (event.type) {
-    case "message":
-      handleMessage(event);
-      break;
-    case "subscription":
-      handleSubscription(event);
-      break;
-    case "gift":
-      handleGift(event);
-      break;
+    return `Viewer Stats: ${stats.hoursWatched} hours watched`;
   }
 });
 ```
 
-#### 2. Analytics & Insights
+</details>
+
+</details>
+
+<details>
+<summary>🤖 AI Integration</summary>
+
+### Chat Sentiment Analysis
 ```typescript
-// Comprehensive analytics
-const analytics = new StreamAnalytics({
+const sentiment = new ChatSentiment({
   access_token: "your_token",
   channel_id: "target_channel"
 });
 
-// Track metrics
-analytics.trackMetrics({
-  viewers: {
-    count: true,
-    demographics: true,
-    retention: true
-  },
-  chat: {
-    activity: true,
-    sentiment: true,
-    commands: true
-  },
-  revenue: {
-    subscriptions: true,
-    donations: true,
-    ads: true
+sentiment.onMessage(async (message) => {
+  const analysis = await analyzeSentiment(message.content);
+  if (analysis.sentiment === "negative") {
+    await sendModAlert(message);
   }
-});
-
-// Generate reports
-analytics.generateReport({
-  period: "last_7_days",
-  metrics: ["viewers", "chat", "revenue"],
-  format: "pdf"
 });
 ```
 
-#### 3. Integration Development
+### Content Recommendations
 ```typescript
-// Custom integration
-const integration = new CustomIntegration({
-  access_token: "your_token",
-  channel_id: "target_channel"
+const recommender = new ContentRecommender({
+  access_token: "your_token"
 });
 
-// Webhook setup
-integration.setupWebhooks({
-  events: ["stream.online", "stream.offline", "chat.message"],
-  url: "https://your-webhook-url.com"
-});
-
-// Custom features
-integration.addFeature({
-  name: "Stream Alerts",
-  description: "Send alerts to Discord when stream starts",
-  handler: async (event) => {
-    if (event.type === "stream.online") {
-      await sendDiscordMessage(`🎥 Stream is live: ${event.title}`);
-    }
-  }
+recommender.getRecommendations({
+  viewerHistory: userHistory,
+  preferences: userPreferences
+}).then(recommendations => {
+  // Display personalized stream recommendations
 });
 ```
 
-## 📥 Installation
+</details>
+
+<details>
+<summary>📥 Installation</summary>
 
 ### Prerequisites
 - Node.js 18 or higher
@@ -1013,7 +519,10 @@ smithery install @NosytLabs/kickmcp
 3. Copy `.env.example` to `.env`
 4. Start the server
 
-## ⚙️ Configuration
+</details>
+
+<details>
+<summary>⚙️ Configuration</summary>
 
 ### Environment Variables
 ```env
@@ -1022,20 +531,53 @@ KICK_CLIENT_ID=your_client_id
 KICK_CLIENT_SECRET=your_client_secret
 
 # Optional settings
-PORT=3000
-NODE_ENV=development
-LOG_LEVEL=info
-SMITHERY_MODE=false
-WEBHOOK_URL=
-WEBHOOK_SECRET=
+PORT=3000                    # Server port (default: 3000)
+NODE_ENV=development        # Environment (development/production)
+LOG_LEVEL=info             # Logging level (error/warn/info/debug)
+SMITHERY_MODE=false        # Enable Smithery integration
+WEBHOOK_URL=              # Webhook endpoint URL
+WEBHOOK_SECRET=           # Webhook signature secret
 ```
 
-### Configuration Notes
-- When `SMITHERY_MODE=true`, OAuth credentials are optional
-- The server will log warnings if OAuth credentials are missing
-- Default values are provided for all optional settings
+<details>
+<summary>🔍 Configuration Details</summary>
 
-## 🚀 Usage
+#### PORT Configuration
+- **Default**: 3000
+- **Purpose**: Specifies the port number where the MCP server will listen for incoming connections
+- **Usage**:
+  ```bash
+  # Development
+  PORT=3000 npm run dev
+  
+  # Production
+  PORT=8080 npm run mcp:prod
+  ```
+- **Note**: Ensure the port is not in use by other applications
+
+#### LOG_LEVEL Configuration
+- **Default**: info
+- **Available Levels**:
+  - `error`: Only critical errors
+  - `warn`: Warnings and errors
+  - `info`: General information, warnings, and errors
+  - `debug`: Detailed debugging information
+- **Usage**:
+  ```bash
+  # Production (minimal logging)
+  LOG_LEVEL=error npm run mcp:prod
+  
+  # Development (detailed logging)
+  LOG_LEVEL=debug npm run dev
+  ```
+- **Note**: Higher log levels may impact performance
+
+</details>
+
+</details>
+
+<details>
+<summary>🚀 Usage</summary>
 
 ### Starting the Server
 ```bash
@@ -1054,7 +596,10 @@ npm start
 curl http://localhost:3000/health
 ```
 
-## 👨‍💻 Developer Guide
+</details>
+
+<details>
+<summary>👨‍💻 Developer Guide</summary>
 
 ### What is MCP?
 Model Context Protocol (MCP) is a standardized way for AI models to interact with external services. Think of it as a universal translator that helps AI models understand and use different APIs.
@@ -1065,7 +610,10 @@ Model Context Protocol (MCP) is a standardized way for AI models to interact wit
 - **Real-time Updates**: Get instant notifications about stream events
 - **Built-in Security**: OAuth and rate limiting handled automatically
 
-## 🔧 MCP Methods
+</details>
+
+<details>
+<summary>🔧 MCP Methods</summary>
 
 ### Authentication Methods
 ```json
@@ -2121,96 +1669,60 @@ Model Context Protocol (MCP) is a standardized way for AI models to interact wit
 }
 ```
 
-## 🤖 AI Integration Examples
+</details>
 
-### 1. Chat Sentiment Analysis
-```typescript
-const sentiment = new ChatSentiment({
-  access_token: "your_token",
-  channel_id: "target_channel"
-});
-
-sentiment.onMessage(async (message) => {
-  const analysis = await analyzeSentiment(message.content);
-  if (analysis.sentiment === "negative") {
-    await sendModAlert(message);
-  }
-});
-```
-
-### 2. Content Recommendations
-```typescript
-const recommender = new ContentRecommender({
-  access_token: "your_token"
-});
-
-recommender.getRecommendations({
-  viewerHistory: userHistory,
-  preferences: userPreferences
-}).then(recommendations => {
-  // Display personalized stream recommendations
-});
-```
-
-### 3. Automated Highlights
-```typescript
-const highlighter = new AIHighlighter({
-  access_token: "your_token",
-  channel_id: "target_channel"
-});
-
-highlighter.onMoment(async (moment) => {
-  const shouldHighlight = await analyzeMoment(moment);
-  if (shouldHighlight) {
-    await createClip(moment);
-  }
-});
-```
-
-## 🔧 Development
-
-### Prerequisites
-- Node.js 16+
-- npm or yarn
-- Kick Developer Account
-
-### Installation
-```bash
-npm install
-```
-
-### Running Tests
-```bash
-npm test
-```
-
-### Building
-```bash
-npm run build
-```
-
-## 🤝 Contributing
+<details>
+<summary>🤝 Contributing</summary>
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 📝 License
+</details>
+
+<details>
+<summary>📝 License</summary>
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📞 Support
+</details>
+
+<details>
+<summary>📞 Support</summary>
 
 For support, email support@nosytlabs.com
 
-## 🙏 Acknowledgments
+</details>
+
+<details>
+<summary>💰 Support Our Work</summary>
+
+<div align="center">
+
+| Platform | Address |
+|----------|---------|
+| Bitcoin | bc1q3yvf74e6h735qtuptygxa7dwf8hvwasyw0uh7c |
+| GitHub Sponsors | [Sponsor](https://github.com/sponsors/NosytLabs) |
+
+</div>
+
+</details>
+
+<details>
+<summary>🙏 Acknowledgments</summary>
 
 - Kick Engineering Team
 - Open Source Community
 - All Contributors
 
+</details>
+
 ---
 
 <div align="center">
   Made with ❤️ by NosytLabs
+  
+  [![Twitter](https://img.shields.io/badge/Twitter-@NosytLabs-blue)](https://twitter.com/NosytLabs)
+  [![GitHub](https://img.shields.io/badge/GitHub-NosytLabs-lightgrey)](https://github.com/NosytLabs)
+  [![Website](https://img.shields.io/badge/Website-nosytlabs.com-green)](https://nosytlabs.com)
 </div>
 
 ## 🔄 Value Proposition
@@ -2266,3 +1778,88 @@ For support, email support@nosytlabs.com
 - Standardized interface
 - Built-in security
 - AI-ready architecture
+
+<details>
+<summary>⚡ Rate Limiting & Best Practices</summary>
+
+### Rate Limits
+- **Authentication**: 100 requests per minute
+- **Chat Operations**: 50 messages per 30 seconds
+- **Moderation Actions**: 20 actions per minute
+- **API Requests**: 1000 requests per hour
+
+### Best Practices
+1. **Implement Exponential Backoff**
+```typescript
+async function makeRequestWithRetry() {
+  let retries = 0;
+  const maxRetries = 3;
+  const baseDelay = 1000; // 1 second
+
+  while (retries < maxRetries) {
+    try {
+      return await makeRequest();
+    } catch (error) {
+      if (error.status === 429) { // Rate limit exceeded
+        const delay = baseDelay * Math.pow(2, retries);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        retries++;
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+```
+
+2. **Use Caching**
+```typescript
+// Cache user profiles for 5 minutes
+const userCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
+
+async function getUserProfile(userId) {
+  if (userCache.has(userId)) {
+    const { data, timestamp } = userCache.get(userId);
+    if (Date.now() - timestamp < CACHE_TTL) {
+      return data;
+    }
+  }
+  
+  const data = await fetchUserProfile(userId);
+  userCache.set(userId, { data, timestamp: Date.now() });
+  return data;
+}
+```
+
+3. **Batch Operations**
+```typescript
+// Instead of individual requests
+async function batchUpdateEmotes(emotes) {
+  const batchSize = 10;
+  for (let i = 0; i < emotes.length; i += batchSize) {
+    const batch = emotes.slice(i, i + batchSize);
+    await Promise.all(batch.map(emote => updateEmote(emote)));
+  }
+}
+```
+
+4. **Monitor Usage**
+```typescript
+// Track API usage
+const usageTracker = {
+  requests: 0,
+  lastReset: Date.now(),
+  
+  trackRequest() {
+    const now = Date.now();
+    if (now - this.lastReset >= 3600000) { // 1 hour
+      this.requests = 0;
+      this.lastReset = now;
+    }
+    this.requests++;
+  }
+};
+```
+
+</details>
