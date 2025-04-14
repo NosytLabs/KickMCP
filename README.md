@@ -65,12 +65,151 @@ This is an unofficial project and is not affiliated with or endorsed by Kick. Us
 
 ### Value for Different Users
 
-| For Streamers | For Viewers | For Developers |
-|--------------|-------------|----------------|
-| Stream Management & Automation | Enhanced Viewing Experience | Chat Bot Development |
-| Viewer Engagement & Rewards | Community Interaction | Analytics & Insights |
-| Content Creation & Highlights | Content Discovery | Integration Development |
-| Advanced Moderation | Chat Enhancement | Custom Features |
+<details>
+<summary>For Streamers</summary>
+
+#### Stream Management & Automation
+- **Automated Stream Setup**
+  ```typescript
+  // Schedule and start streams automatically
+  await mcp.scheduleStream({
+    title: "Gaming Night",
+    start_time: "2024-03-20T20:00:00Z",
+    category: "Gaming"
+  });
+  ```
+
+- **Viewer Engagement**
+  ```typescript
+  // Create interactive polls
+  await mcp.createPoll({
+    channel_id: "123",
+    question: "What game should we play next?",
+    options: ["Valorant", "Apex Legends", "Fortnite"]
+  });
+  ```
+
+- **Content Creation**
+  ```typescript
+  // Automatically create highlights
+  await mcp.createHighlight({
+    channel_id: "123",
+    title: "Epic Play",
+    timestamp: "2024-03-20T21:30:00Z",
+    duration: 60
+  });
+  ```
+
+- **Advanced Moderation**
+  ```typescript
+  // Set up automated moderation rules
+  await mcp.setModerationRules({
+    channel_id: "123",
+    rules: {
+      spam_detection: true,
+      toxicity_filter: true,
+      auto_timeout: true
+    }
+  });
+  ```
+</details>
+
+<details>
+<summary>For Viewers</summary>
+
+#### Enhanced Viewing Experience
+- **Personalized Recommendations**
+  ```typescript
+  // Get recommended streams based on viewing history
+  const recommendations = await mcp.getRecommendedStreams({
+    user_id: "456",
+    limit: 5
+  });
+  ```
+
+- **Community Interaction**
+  ```typescript
+  // Join and manage communities
+  await mcp.joinCommunity({
+    community_id: "789",
+    user_id: "456"
+  });
+  ```
+
+- **Content Discovery**
+  ```typescript
+  // Search for specific content
+  const results = await mcp.searchContent({
+    query: "gaming",
+    type: "stream",
+    sort: "viewers"
+  });
+  ```
+
+- **Chat Enhancement**
+  ```typescript
+  // Use AI-powered chat features
+  await mcp.enableChatFeatures({
+    user_id: "456",
+    features: ["emote_suggestions", "chat_translation"]
+  });
+  ```
+</details>
+
+<details>
+<summary>For Developers</summary>
+
+#### Chat Bot Development
+- **Bot Integration**
+  ```typescript
+  // Create a chat bot
+  const bot = new MCPBot({
+    channel_id: "123",
+    commands: {
+      "!hello": async (msg) => {
+        await mcp.sendChatMessage({
+          channel_id: msg.channel_id,
+          message: `Hello ${msg.user_name}!`
+        });
+      }
+    }
+  });
+  ```
+
+- **Analytics & Insights**
+  ```typescript
+  // Get detailed analytics
+  const analytics = await mcp.getChannelAnalytics({
+    channel_id: "123",
+    metrics: ["viewers", "chat_messages", "followers"],
+    timeframe: "last_7_days"
+  });
+  ```
+
+- **Integration Development**
+  ```typescript
+  // Create custom integrations
+  const integration = new MCPIntegration({
+    name: "MyIntegration",
+    events: ["chat_message", "follow", "subscription"],
+    handlers: {
+      onChatMessage: async (msg) => {
+        // Custom logic here
+      }
+    }
+  });
+  ```
+
+- **Custom Features**
+  ```typescript
+  // Extend MCP functionality
+  class CustomMCP extends MCP {
+    async customMethod(params) {
+      // Custom implementation
+    }
+  }
+  ```
+</details>
 
 ## 🚀 Quick Start
 
