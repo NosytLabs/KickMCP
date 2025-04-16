@@ -12,6 +12,10 @@
 
 </div>
 
+<a href="https://glama.ai/mcp/servers/@NosytLabs/KickMCP">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@NosytLabs/KickMCP/badge" alt="Kick Server MCP server" />
+</a>
+
 ## 📋 Table of Contents
 - [Project Overview](#-project-overview)
 - [Value Proposition](#-value-proposition)
