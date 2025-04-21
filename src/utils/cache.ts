@@ -26,27 +26,26 @@ export class SimpleCache {
     logger.debug(`Cache set: ${key}`);
   }
 
-  get<T>(key: string): T | null {
+  private getItem<T>(key: string): CacheEntry<T> | null {
     const item = this.cache.get(key) as CacheEntry<T> | undefined;
-    if (!item) return null;
-    if (Date.now() > item.expiry) {
-      this.cache.delete(key);
-      logger.debug(`Cache expired: ${key}`);
+    if (!item || Date.now() > item.expiry) {
+      if (item) this.cache.delete(key);
       return null;
     }
-    logger.debug(`Cache hit: ${key}`);
-    return item.value;
+    return item;
+  }
+
+  get<T>(key: string): T | null {
+    const item = this.getItem<T>(key);
+    if (item) {
+      logger.debug(`Cache hit: ${key}`);
+      return item.value;
+    }
+    return null;
   }
 
   has(key: string): boolean {
-    const item = this.cache.get(key);
-    if (!item) return false;
-    if (Date.now() > item.expiry) {
-      this.cache.delete(key);
-      logger.debug(`Cache expired: ${key}`);
-      return false;
-    }
-    return true;
+    return !!this.getItem<unknown>(key);
   }
 
   delete(key: string): boolean {

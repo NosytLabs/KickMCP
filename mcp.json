@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "Kick API MCP": {
+      "command": "node",
+      "args": ["./dist/bin/mcp.js"]
+    }
+  },
+  "version": "1.0.0",
+  "description": "MCP configuration for KickMCP project",
+  "defaultServer": "Kick API MCP"
+}

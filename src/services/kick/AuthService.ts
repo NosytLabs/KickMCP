@@ -1,113 +1,149 @@
-import { BaseKickService } from './BaseKickService';
-import * as KickTypes from '../../types/kick';
+import { PersistentStore } from '../../utils/persistentStore';
 import { logger } from '../../utils/logger';
+import { BaseKickService } from './BaseKickService'; // Removed KickServiceOptions import
+import path from 'path';
 
-/**
- * Service for handling Kick API Authentication methods.
- */
+// Define the structure for the data stored persistently
+interface AuthData {
+  accessToken?: string;
+  refreshToken?: string;
+  tokenExpiry?: number; // Optional: Store expiry time for proactive refresh
+  userId?: string; // Optional: Store associated user ID
+  [key: string]: string | number | undefined; // Add index signature
+}
+
+// Define the path for the persistent store file
+// Using a subdirectory like 'data' is good practice
+const STORE_FILE_PATH = path.resolve(process.cwd(), 'data', 'auth-store.enc');
+
 export class AuthService extends BaseKickService {
-  /**
-   * Generates an OAuth authorization URL.
-   * Does not require authentication itself, but initiates the flow.
-   * @param params The OAuth parameters.
-   * @returns An object containing the authorization URL.
-   */
-  async getOAuthUrl(params: {
-    client_id: string;
-    redirect_uri: string;
-    scope: string;
-    state?: string;
-    code_challenge?: string;
-    code_challenge_method?: string;
-  }): Promise<{ url: string }> {
-    // This method constructs a URL and doesn't directly call makeRequest
-    const url = new URL(`${this.baseUrl}/oauth2/authorize`);
-    url.searchParams.append('response_type', 'code'); // Standard OAuth param
-    url.searchParams.append('client_id', params.client_id);
-    url.searchParams.append('redirect_uri', params.redirect_uri);
-    url.searchParams.append('scope', params.scope);
-    if (params.state) url.searchParams.append('state', params.state);
-    if (params.code_challenge) url.searchParams.append('code_challenge', params.code_challenge);
-    if (params.code_challenge_method) url.searchParams.append('code_challenge_method', params.code_challenge_method);
+  // Implement the abstract property from BaseKickService
+  protected basePath = '/auth'; // Assuming '/auth' is the base path for auth endpoints
 
-    logger.debug('Generated OAuth URL', { url: url.toString() });
-    return Promise.resolve({ url: url.toString() }); // Return Promise for consistency
+  private tokenStore: PersistentStore<AuthData>;
+  private isStoreInitialized = false;
+
+  // Use the inline type for options as defined in BaseKickService
+  constructor(options?: { baseUrl?: string; cacheTtl?: number }) {
+    super(options); // Pass options to base service if needed
+
+    // Retrieve the encryption key from environment variables
+    const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY;
+
+    if (!encryptionKey) {
+      logger.error('CRITICAL: TOKEN_ENCRYPTION_KEY environment variable is not set.');
+      logger.warn('Token persistence will use an insecure default key. THIS IS NOT SAFE FOR PRODUCTION.');
+      // Consider throwing an error in production environments here to prevent startup
+    } else if (encryptionKey.length !== 64) {
+        logger.error('CRITICAL: TOKEN_ENCRYPTION_KEY must be a 64-character hex string (32 bytes).');
+        logger.warn('Token persistence will use an insecure default key due to invalid key format.');
+        // Consider throwing an error here as well
+    }
+
+    this.tokenStore = new PersistentStore<AuthData>({
+      filePath: STORE_FILE_PATH,
+      // Provide the key, PersistentStore handles the default/warning if invalid
+      encryptionKey: encryptionKey || '',
+    });
   }
 
   /**
-   * Exchanges an authorization code for an access token.
-   * @param params The token request parameters.
-   * @returns The token response.
+   * Initializes the persistent token store. Must be called before using token methods.
    */
-  async getAccessToken(params: {
-    client_id: string;
-    client_secret: string;
-    code: string;
-    redirect_uri: string;
-    code_verifier?: string;
-  }): Promise<KickTypes.TokenResponse> {
-    const endpoint = '/oauth2/token';
-    const body = {
-      grant_type: 'authorization_code',
-      client_id: params.client_id,
-      client_secret: params.client_secret,
-      code: params.code,
-      redirect_uri: params.redirect_uri,
-      code_verifier: params.code_verifier,
-    };
-    logger.info(`Requesting access token for client_id: ${params.client_id}`);
-    // Auth service methods typically don't require bearer token themselves
-    return this.makeRequest<KickTypes.TokenResponse>('POST', endpoint, body, {}, false);
+  async initialize(): Promise<void> {
+    if (this.isStoreInitialized) {
+      return;
+    }
+    try {
+      await this.tokenStore.initialize();
+      this.isStoreInitialized = true;
+      logger.info('AuthService token store initialized successfully.');
+      // Perform initial validation/check after loading
+      await this.validateStoredToken();
+    } catch (error) {
+      logger.error('Failed to initialize AuthService token store.', error);
+      // Depending on severity, might re-throw or prevent service readiness
+      throw error;
+    }
+  }
+
+  private ensureStoreInitialized(): void {
+    if (!this.isStoreInitialized) {
+      throw new Error('AuthService token store is not initialized. Call initialize() first.');
+    }
   }
 
   /**
-   * Refreshes an access token using a refresh token.
-   * @param params The refresh token request parameters.
-   * @returns The token response.
+   * Placeholder for validating the token on startup (e.g., check expiry, ping API)
    */
-  async refreshAccessToken(params: {
-    client_id: string;
-    client_secret: string;
-    refresh_token: string;
-  }): Promise<KickTypes.TokenResponse> {
-    const endpoint = '/oauth2/token';
-    const body = {
-      grant_type: 'refresh_token',
-      client_id: params.client_id,
-      client_secret: params.client_secret,
-      refresh_token: params.refresh_token,
-    };
-    logger.info(`Refreshing access token for client_id: ${params.client_id}`);
-    return this.makeRequest<KickTypes.TokenResponse>('POST', endpoint, body, {}, false);
+  private async validateStoredToken(): Promise<void> {
+    this.ensureStoreInitialized();
+    const token = this.tokenStore.get('accessToken');
+    const expiry = this.tokenStore.get('tokenExpiry');
+
+    if (token) {
+        if (expiry && Date.now() >= expiry) {
+            logger.warn('Stored access token has expired. Attempting refresh or requiring re-login.');
+            // TODO: Implement token refresh logic here if applicable
+            await this.clearTokens(); // Clear expired token for now
+        } else {
+            logger.info('Found valid stored access token.');
+            // TODO: Optionally ping a protected API endpoint to fully verify the token
+        }
+    } else {
+        logger.info('No stored access token found.');
+    }
+  }
+
+
+  // --- Placeholder Methods for Authentication Flow ---
+
+  /**
+   * Simulates storing tokens after a successful login.
+   * Replace with actual API call and token extraction.
+   */
+  async login(userId: string, accessToken: string, refreshToken: string, expiresInSeconds: number): Promise<void> {
+    this.ensureStoreInitialized();
+    const expiry = Date.now() + expiresInSeconds * 1000;
+    await this.tokenStore.set('userId', userId);
+    await this.tokenStore.set('accessToken', accessToken);
+    await this.tokenStore.set('refreshToken', refreshToken);
+    await this.tokenStore.set('tokenExpiry', expiry); // Save calculated expiry
+    logger.info(`Tokens stored successfully for user ${userId}.`);
   }
 
   /**
-   * Validates an access token.
-   * Requires the token itself for validation.
-   * @param params The validation request parameters.
-   * @returns The validation response.
+   * Retrieves the current access token.
    */
-  async validateToken(params: { access_token: string }): Promise<KickTypes.TokenValidationResponse> {
-    const endpoint = '/oauth2/validate';
-    // The makeRequest handles adding the Bearer token
-    logger.debug('Validating access token');
-    return this.makeRequest<KickTypes.TokenValidationResponse>('GET', endpoint, undefined, {}, true, params.access_token);
+  getAccessToken(): string | undefined {
+    this.ensureStoreInitialized();
+    // TODO: Add logic here to check expiry and potentially trigger refresh
+    const expiry = this.tokenStore.get('tokenExpiry');
+    if (expiry && Date.now() >= expiry) {
+        logger.warn('Access token expired. Need refresh or re-login.');
+        // In a real scenario, you'd trigger refresh flow here
+        return undefined;
+    }
+    return this.tokenStore.get('accessToken');
   }
 
   /**
-   * Revokes an access token or refresh token.
-   * Requires authentication via client credentials typically, or the token itself.
-   * Kick's revoke might be simpler and just needs the token to revoke.
-   * @param params The revocation request parameters.
-   * @returns The revocation response.
+   * Retrieves the current refresh token.
    */
-  async revokeToken(params: { access_token: string; client_id?: string; client_secret?: string }): Promise<{ success: boolean }> {
-    const endpoint = '/oauth2/revoke';
-     // Kick revoke seems to just need the token itself in the body
-    const body = {
-      token: params.access_token
-    };
-    logger.info('Revoking token');
-    // Assuming revoke doesn't need a *different* Bearer token for the request itself
-    // If it requires client credentials, adjust makeRequest or headers here.
-    return this.makeRequest<{ success: boolean }>('POST', endpoint, body, {
+  getRefreshToken(): string | undefined {
+    this.ensureStoreInitialized();
+    return this.tokenStore.get('refreshToken');
+  }
+
+  /**
+   * Clears stored tokens (e.g., on logout or invalidation).
+   */
+  async clearTokens(): Promise<void> {
+    this.ensureStoreInitialized();
+    // Use clear which saves automatically, or delete individual keys
+    await this.tokenStore.clear();
+    logger.info('Stored authentication tokens cleared.');
+  }
+
+  // TODO: Add methods for actual Kick API authentication (e.g., OAuth flow, token refresh)
+}

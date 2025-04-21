@@ -2,7 +2,8 @@ import { JSONRPCServer } from 'json-rpc-2.0';
 import { logger } from './utils/logger';
 import { setupCache, SimpleCache } from './utils/cache';
 import { createRateLimiter, RateLimiter } from './utils/ratelimit';
-import { KickService } from './services/kick';
+// Import the modular KickService which exposes sub-services like 'auth'
+import { KickService } from './services/kick/index'; // Corrected import path
 import { setupMCPHandler } from './mcp/handler';
 
 // Environment variables with defaults
@@ -46,6 +47,11 @@ async function startServer(): Promise<void> {
   try {
     // Validate configuration
     validateConfig();
+
+    // Initialize services that require async setup (like persistent stores)
+    logger.info('Initializing authentication service...');
+    await kickService.auth.initialize(); // Initialize the AuthService store
+    logger.info('Authentication service initialized.');
 
     // Setup MCP handler
     setupMCPHandler(kickService);

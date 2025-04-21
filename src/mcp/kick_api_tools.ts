@@ -1,6 +1,6 @@
 // Import necessary modules and types
 import { secureTokenStore } from './auth';
-import { KickService } from '../services/kick';
+
 import { logger } from '../utils/logger';
 
 // Define the Kick API tools class

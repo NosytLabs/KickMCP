@@ -1,5 +1,4 @@
 import { SimpleCache } from '../utils/cache';
-import { DEFAULT_CACHE_TTL } from './kick/BaseKickService';
 import {
   KickService as ModularKickService,
   AuthService,

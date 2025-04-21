@@ -8,7 +8,7 @@ interface TokenResponse {
   expires_in: number;
   scope: string;
 }
-import { KickService } from '../services/kick';
+
 // Explicitly require and type pkce-challenge for CommonJS compatibility
 const pkceChallenge: () => { code_verifier: string; code_challenge: string } = require('pkce-challenge');
 import crypto from 'crypto';

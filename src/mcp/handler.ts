@@ -5,7 +5,6 @@ import { JSONRPCServer, JSONRPCRequest, JSONRPCResponse, JSONRPCErrorException }
 import * as readline from 'readline';
 import { logger } from '../utils/logger';
 // Import the main KickService aggregator
-import { KickService } from '../services/kick'; // Corrected import
 
 // Auth-related imports (ensure helpers like getAccessTokenHelper are correctly exported from auth.ts)
 import {
