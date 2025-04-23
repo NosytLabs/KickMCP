@@ -1,0 +1,183 @@
+{
+  "mcpServers": {
+    "brave-search": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/brave-search",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ],
+      "alwaysAllow": [
+        "brave_local_search",
+        "brave_web_search"
+      ],
+      "timeout": 30,
+      "retryAttempts": 3
+    },
+    "github": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/github",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ],
+      "alwaysAllow": [
+        "search_repositories",
+        "get_file_contents"
+      ],
+      "timeout": 30,
+      "retryAttempts": 3
+    },
+    "puppeteer": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/puppeteer",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ],
+      "alwaysAllow": [
+        "puppeteer_screenshot",
+        "puppeteer_click",
+        "puppeteer_fill",
+        "puppeteer_select",
+        "puppeteer_hover",
+        "puppeteer_evaluate",
+        "puppeteer_launch",
+        "puppeteer_navigate"
+      ],
+      "timeout": 60,
+      "retryAttempts": 2
+    },
+    "magic-mcp": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@21st-dev/magic-mcp",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ],
+      "alwaysAllow": [
+        "logo_search",
+        "21st_magic_component_inspiration",
+        "21st_magic_component_builder"
+      ],
+      "timeout": 30,
+      "disabled": false,
+      "retryAttempts": 3
+    },
+    "toolbox": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery/toolbox",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ],
+      "alwaysAllow": [
+        "search_registry",
+        "add_tool",
+        "remove_tool",
+        "use_tool",
+        "search_servers",
+        "add_server",
+        "remove_server"
+      ],
+      "timeout": 30,
+      "retryAttempts": 3
+    },
+    "game-engine-mcp": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@mahecode/game-engine-mcp",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ],
+      "alwaysAllow": [
+        "gamedesignthinking",
+        "getGameSummary",
+        "exportGameDesign"
+      ],
+      "timeout": 45,
+      "retryAttempts": 3
+    },
+    "fetch": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/fetch",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ],
+      "alwaysAllow": [
+        "fetch",
+        "fetchJson"
+      ],
+      "timeout": 30,
+      "retryAttempts": 3
+    },
+    "mcp-playwright": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@iiiusky/mcp-playwright",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ],
+      "alwaysAllow": [
+        "playwright_screenshot",
+        "start_codegen_session"
+      ],
+      "timeout": 45,
+      "retryAttempts": 2
+    },
+    "context7-mcp": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@upstash/context7-mcp",
+        "--key",
+        "a6f8d215-b80d-4521-8d8d-bdeaa6384b02"
+      ]
+    }
+  }
+}

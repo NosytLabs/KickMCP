@@ -1,0 +1,85 @@
+{
+  "mcpServers": {
+    "Kick API MCP": {
+      "command": "node",
+      "args": ["./dist/bin/mcp.js"]
+    }
+  },
+  "version": "1.0.0",
+  "description": "MCP configuration for KickMCP project",
+  "defaultServer": "Kick API MCP",
+  "aiAssistantConfig": {
+    "server_name": "mcp.config.usrlocalmcp.kick",
+    "description": "Kick streaming platform API integration",
+    "tools": [
+      {
+        "name": "get_app_access_token",
+        "description": "Get an App Access Token for application-level API access",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "client_id": {
+              "type": "string",
+              "description": "The client ID of your Kick application"
+            },
+            "client_secret": {
+              "type": "string",
+              "description": "The client secret of your Kick application"
+            }
+          },
+          "required": ["client_id", "client_secret"]
+        }
+      },
+      {
+        "name": "send_chat_message",
+        "description": "Send a chat message to a specified channel",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "channel_id": {
+              "type": "string",
+              "description": "The ID of the channel to send the message to"
+            },
+            "message": {
+              "type": "string",
+              "description": "The content of the message to send"
+            },
+            "reply_to_id": {
+              "type": "string",
+              "description": "Optional ID of a message to reply to"
+            }
+          },
+          "required": ["channel_id", "message"]
+        }
+      },
+      {
+        "name": "get_channel_info",
+        "description": "Retrieve information about a specific channel by ID",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "channel_id": {
+              "type": "string",
+              "description": "The ID of the channel to retrieve information for"
+            }
+          },
+          "required": ["channel_id"]
+        }
+      },
+      {
+        "name": "get_channel_by_slug",
+        "description": "Retrieve information about a specific channel by slug",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "channel_slug": {
+              "type": "string",
+              "description": "The slug of the channel to retrieve information for"
+            }
+          },
+          "required": ["channel_slug"]
+        }
+      }
+    ]
+  }
+}
