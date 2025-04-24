@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kick MCP Authentication Callback</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1a1a1a; /* Kick dark background */
+            color: #ffffff; /* White text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .container {
+            background-color: #262626; /* Slightly lighter dark */
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #53fc18; /* Kick green */
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        .code-display {
+            background-color: #1a1a1a;
+            border: 1px solid #444;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2em;
+            word-wrap: break-word;
+            margin-bottom: 25px;
+            color: #eee;
+            min-height: 30px; /* Ensure visibility even if code is missing */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .copy-button {
+            background-color: #53fc18; /* Kick green */
+            color: #1a1a1a; /* Dark text on green button */
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .copy-button:hover {
+            background-color: #48de14; /* Slightly darker green */
+        }
+        .copy-button:active {
+            transform: scale(0.98);
+        }
+        .copy-button.copied {
+            background-color: #aaa;
+            color: #fff;
+            cursor: default;
+        }
+        .error {
+            color: #ff4d4d; /* Red for errors */
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Authentication Successful!</h1>
+        <p>Your Kick authorization code is displayed below. Please copy it and paste it back into your terminal or MCP application prompt.</p>
+        <div id="code-display" class="code-display">Loading...</div>
+        <button id="copy-button" class="copy-button">Copy Code</button>
+        <p id="error-message" class="error" style="display: none;"></p>
+    </div>
+
+    <script>
+        const codeDisplay = document.getElementById('code-display');
+        const copyButton = document.getElementById('copy-button');
+        const errorMessage = document.getElementById('error-message');
+        let authCode = null;
+
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        function displayError(message) {
+            codeDisplay.style.display = 'none'; // Hide code box on error
+            copyButton.style.display = 'none'; // Hide copy button on error
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // --- Main Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            authCode = getQueryParam('code');
+            const state = getQueryParam('state'); // Optional: could verify state here if needed client-side
+
+            if (authCode) {
+                codeDisplay.textContent = authCode;
+            } else {
+                displayError('Error: Authorization code not found in the URL. Please try the authentication process again.');
+                console.error('Authorization code missing from URL parameters.');
+            }
+
+            // --- Copy Button Logic ---
+            copyButton.addEventListener('click', () => {
+                if (!authCode || copyButton.classList.contains('copied')) {
+                    return; // Do nothing if no code or already copied
+                }
+
+                navigator.clipboard.writeText(authCode).then(() => {
+                    copyButton.textContent = 'Copied!';
+                    copyButton.classList.add('copied');
+                    // Optional: Reset button after a few seconds
+                    setTimeout(() => {
+                        copyButton.textContent = 'Copy Code';
+                        copyButton.classList.remove('copied');
+                    }, 3000);
+                }).catch(err => {
+                    console.error('Failed to copy code: ', err);
+                    displayError('Error: Could not copy code to clipboard. Please copy it manually.');
+                    copyButton.style.display = 'none'; // Hide button if clipboard fails
+                });
+            });
+        });
+    </script>
+</body>
+</html>
