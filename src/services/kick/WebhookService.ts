@@ -3,6 +3,7 @@ import * as KickTypes from '../../types/kick';
 import { logger } from '../../utils/logger';
 import { KickApiError } from '../../utils/errors';
 import { EventEmitter } from 'events';
+import crypto from 'crypto';
 
 /**
  * Service for handling Kick API Webhook methods.
@@ -12,11 +13,16 @@ export class WebhookService extends BaseKickService {
   protected basePath = '/webhooks';
   private eventEmitter: EventEmitter;
 
-  constructor(options?: { baseUrl?: string; cacheTtl?: number }) {
+  /**
+   * Creates a new WebhookService instance
+   * @param options Configuration options
+   */
+  constructor(options?: { baseUrl?: string; cacheTtl?: number; maxListeners?: number }) {
     super(options);
     this.eventEmitter = new EventEmitter();
     // Set higher limit for webhook event listeners
-    this.eventEmitter.setMaxListeners(50);
+    this.eventEmitter.setMaxListeners(options?.maxListeners || 50);
+    logger.debug('WebhookService initialized');
   }
 
   /**
@@ -50,20 +56,29 @@ export class WebhookService extends BaseKickService {
   }
 
   /**
-   * Handles incoming webhook events, particularly livestream status events.
+   * Handles incoming webhook events from Kick API.
+   * Validates, processes, and emits events for subscribers.
    * @param payload The webhook event payload.
    * @returns Processed event data.
    */
   async handleWebhookEvent(payload: any): Promise<any> {
+    if (!payload || !payload.type) {
+      logger.error('Invalid webhook payload received', { payload });
+      return {
+        success: false,
+        error: 'Invalid webhook payload'
+      };
+    }
+    
     logger.debug('Received webhook event', { event_type: payload.type });
+    
+    // Process the event through the event emitter system
+    this.processWebhookEvent(payload.type, payload.data || payload);
     
     // Handle livestream status events
     if (payload.type === 'livestream.status') {
       const livestreamData = payload.data;
       logger.info(`Livestream status changed for channel ${livestreamData.channel_id}: ${livestreamData.status}`);
-      
-      // Emit event for subscribers to consume
-      this.eventEmitter.emit('livestream.status', livestreamData);
       
       return {
         success: true,
@@ -72,11 +87,11 @@ export class WebhookService extends BaseKickService {
       };
     }
     
-    // Handle other event types as they are implemented
-    logger.warn(`Unhandled webhook event type: ${payload.type}`);
+    // Return a standardized response for all event types
     return {
-      success: false,
-      error: `Unhandled webhook event type: ${payload.type}`
+      success: true,
+      event: payload.type,
+      data: payload.data || payload
     };
   }
 
@@ -167,12 +182,11 @@ export class WebhookService extends BaseKickService {
    * @returns Whether the signature is valid.
    */
   verifyWebhookSignature(signature: string, payload: string, secret: string): boolean {
-    // Implementation depends on how Kick signs webhooks
-    // This is a placeholder implementation
     try {
-      const crypto = require('crypto');
       const hmac = crypto.createHmac('sha256', secret);
       const calculatedSignature = hmac.update(payload).digest('hex');
+      
+      // Use constant-time comparison to prevent timing attacks
       return crypto.timingSafeEqual(
         Buffer.from(signature),
         Buffer.from(calculatedSignature)

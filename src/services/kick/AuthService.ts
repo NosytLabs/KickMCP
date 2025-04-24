@@ -1,28 +1,13 @@
 import { BaseKickService } from './BaseKickService';
 import * as KickTypes from '../../types/kick';
 import { logger } from '../../utils/logger';
+import { PersistentStore } from '../../utils/persistentStore';
+import path from 'path';
+import { KickApiError } from '../../utils/errors';
 
 /**
  * Service for handling Kick API Authentication methods.
  */
-export class AuthService extends BaseKickService {
-  /**
-   * Gets an App Access Token for application-level API access.
-   * @param params Request parameters including client_id, client_secret, and grant_type.
-   * @returns The App Access Token response.
-   */
-  async getAppAccessToken(params: {
-    client_id: string;
-    client_secret: string;
-    grant_type: string;
-  }): Promise<KickTypes.AppAccessTokenResponse> {
-    const endpoint = '/oauth/token';
-    logger.debug('Requesting App Access Token');
-    return this.makeRequest<KickTypes.AppAccessTokenResponse>('POST', endpoint, params, {}, false);
-  }
-}
-import { PersistentStore } from '../../utils/persistentStore';
-import path from 'path';
 
 // Define the structure for the data stored persistently
 interface AuthData {
@@ -38,6 +23,20 @@ interface AuthData {
 const STORE_FILE_PATH = path.resolve(process.cwd(), 'data', 'auth-store.enc');
 
 export class AuthService extends BaseKickService {
+  /**
+   * Gets an App Access Token for application-level API access.
+   * @param params Request parameters including client_id, client_secret, and grant_type.
+   * @returns The App Access Token response.
+   */
+  async getAppAccessToken(params: {
+    client_id: string;
+    client_secret: string;
+    grant_type: string;
+  }): Promise<KickTypes.AppAccessTokenResponse> {
+    const endpoint = '/oauth/token';
+    logger.debug('Requesting App Access Token');
+    return this.makeRequest<KickTypes.AppAccessTokenResponse>('POST', endpoint, params, {}, false);
+  }
   // Implement the abstract property from BaseKickService
   protected basePath = '/auth'; // Assuming '/auth' is the base path for auth endpoints
 
@@ -181,12 +180,12 @@ export class AuthService extends BaseKickService {
   }
 
   /**
-   * Retrieves the current access token.
+   * Retrieves the current access token from storage.
    * Automatically refreshes the token if it's expired or about to expire.
    * @param options Optional parameters for token retrieval
    * @returns The current access token or undefined if not available
    */
-  async getAccessToken(options?: { forceRefresh?: boolean }): Promise<string | undefined> {
+  async getStoredAccessToken(options?: { forceRefresh?: boolean }): Promise<string | undefined> {
     this.ensureStoreInitialized();
     
     const accessToken = this.tokenStore.get('accessToken');
@@ -267,13 +266,6 @@ export class AuthService extends BaseKickService {
     logger.info('Stored authentication tokens cleared.');
   }
 
-  // TODO: Add methods for actual Kick API authentication (e.g., OAuth flow, token refresh)
-}
-
-/**
- * Service for handling Kick API Authentication methods.
- */
-export class AuthService extends BaseKickService {
   /**
    * Generates an OAuth authorization URL.
    * Does not require authentication itself, but initiates the flow.

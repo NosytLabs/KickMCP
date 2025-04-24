@@ -6,6 +6,8 @@ import { logger } from '../../utils/logger';
  * Service for handling Kick API Channel methods.
  */
 export class ChannelService extends BaseKickService {
+  // Implement the abstract property from BaseKickService
+  protected basePath = '/channels'; // Base path for channel endpoints
 
   /**
    * Gets information for a specific channel by ID.
@@ -145,70 +147,111 @@ export class ChannelService extends BaseKickService {
         logger.debug(`Fetching settings for channel ${params.channel_id}`);
         return this.makeRequest<any>('GET', endpoint, undefined, {}, true, params.access_token);
     }
-}
-  
-  // --- Potentially Missing endpoints based on handler.ts --- 
-  // These need verification against the actual Kick API structure
 
-    async getChannelClips(params: { access_token?: string; channel_id: string }): Promise<any> {
-        const endpoint = `/channels/${params.channel_id}/clips`; // Verify!
-        logger.debug(`Fetching clips for channel ${params.channel_id}`);
-        const requiresAuth = !!params.access_token;
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
-    }
+  /**
+   * Gets clips for a specific channel.
+   * @param params Request parameters including channel_id and optional access_token.
+   * @returns List of channel clips.
+   */
+  async getChannelClips(params: { access_token?: string; channel_id: string }): Promise<any> {
+    const endpoint = `/channels/${params.channel_id}/clips`; // Verify!
+    logger.debug(`Fetching clips for channel ${params.channel_id}`);
+    const requiresAuth = !!params.access_token;
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
+  }
 
-    async getChannelVideos(params: { access_token?: string; channel_id: string }): Promise<any> {
-        const endpoint = `/channels/${params.channel_id}/videos`; // Verify!
-        logger.debug(`Fetching videos for channel ${params.channel_id}`);
-        const requiresAuth = !!params.access_token;
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
-    }
+  /**
+   * Gets videos for a specific channel.
+   * @param params Request parameters including channel_id and optional access_token.
+   * @returns List of channel videos.
+   */
+  async getChannelVideos(params: { access_token?: string; channel_id: string }): Promise<any> {
+    const endpoint = `/channels/${params.channel_id}/videos`; // Verify!
+    logger.debug(`Fetching videos for channel ${params.channel_id}`);
+    const requiresAuth = !!params.access_token;
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
+  }
 
-    async getChannelHighlights(params: { access_token?: string; channel_id: string }): Promise<any> {
-        const endpoint = `/channels/${params.channel_id}/highlights`; // Verify!
-        logger.debug(`Fetching highlights for channel ${params.channel_id}`);
-        const requiresAuth = !!params.access_token;
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
-    }
+  /**
+   * Gets highlights for a specific channel.
+   * @param params Request parameters including channel_id and optional access_token.
+   * @returns List of channel highlights.
+   */
+  async getChannelHighlights(params: { access_token?: string; channel_id: string }): Promise<any> {
+    const endpoint = `/channels/${params.channel_id}/highlights`; // Verify!
+    logger.debug(`Fetching highlights for channel ${params.channel_id}`);
+    const requiresAuth = !!params.access_token;
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
+  }
 
-    async getChannelScheduledStreams(params: { access_token?: string; channel_id: string }): Promise<any> {
-        const endpoint = `/channels/${params.channel_id}/scheduled-streams`; // Verify!
-        logger.debug(`Fetching scheduled streams for channel ${params.channel_id}`);
-        const requiresAuth = !!params.access_token;
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
-    }
+  /**
+   * Gets scheduled streams for a specific channel.
+   * @param params Request parameters including channel_id and optional access_token.
+   * @returns List of scheduled streams.
+   */
+  async getChannelScheduledStreams(params: { access_token?: string; channel_id: string }): Promise<any> {
+    const endpoint = `/channels/${params.channel_id}/scheduled-streams`; // Verify!
+    logger.debug(`Fetching scheduled streams for channel ${params.channel_id}`);
+    const requiresAuth = !!params.access_token;
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
+  }
 
-    async getChannelCategories(params: { access_token?: string; channel_id: string }): Promise<any> {
-        // Categories might be global or channel-specific, verify endpoint
-        const endpoint = `/channels/${params.channel_id}/categories`; // Verify!
-        logger.debug(`Fetching categories for channel ${params.channel_id}`);
-        const requiresAuth = !!params.access_token;
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
-    }
+  /**
+   * Gets categories for a specific channel.
+   * @param params Request parameters including channel_id and optional access_token.
+   * @returns List of channel categories.
+   */
+  async getChannelCategories(params: { access_token?: string; channel_id: string }): Promise<any> {
+    // Categories might be global or channel-specific, verify endpoint
+    const endpoint = `/channels/${params.channel_id}/categories`; // Verify!
+    logger.debug(`Fetching categories for channel ${params.channel_id}`);
+    const requiresAuth = !!params.access_token;
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
+  }
 
-    async getChannelTags(params: { access_token?: string; channel_id: string }): Promise<any> {
-        // Tags might be global or channel-specific, verify endpoint
-        const endpoint = `/channels/${params.channel_id}/tags`; // Verify!
-        logger.debug(`Fetching tags for channel ${params.channel_id}`);
-         const requiresAuth = !!params.access_token;
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
-    }
+  /**
+   * Gets tags for a specific channel.
+   * @param params Request parameters including channel_id and optional access_token.
+   * @returns List of channel tags.
+   */
+  async getChannelTags(params: { access_token?: string; channel_id: string }): Promise<any> {
+    // Tags might be global or channel-specific, verify endpoint
+    const endpoint = `/channels/${params.channel_id}/tags`; // Verify!
+    logger.debug(`Fetching tags for channel ${params.channel_id}`);
+    const requiresAuth = !!params.access_token;
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, requiresAuth, params.access_token);
+  }
 
-    async getChannelGifts(params: { access_token: string; channel_id: string }): Promise<any> {
-        const endpoint = `/channels/${params.channel_id}/gifts`; // Verify!
-        logger.debug(`Fetching gifts for channel ${params.channel_id}`);
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, true, params.access_token);
-    }
+  /**
+   * Gets gifts for a specific channel.
+   * @param params Request parameters including access_token and channel_id.
+   * @returns List of channel gifts.
+   */
+  async getChannelGifts(params: { access_token: string; channel_id: string }): Promise<any> {
+    const endpoint = `/channels/${params.channel_id}/gifts`; // Verify!
+    logger.debug(`Fetching gifts for channel ${params.channel_id}`);
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, true, params.access_token);
+  }
 
-    async getChannelRaids(params: { access_token: string; channel_id: string }): Promise<any> {
-        const endpoint = `/channels/${params.channel_id}/raids`; // Verify!
-        logger.debug(`Fetching raids for channel ${params.channel_id}`);
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, true, params.access_token);
-    }
+  /**
+   * Gets raids for a specific channel.
+   * @param params Request parameters including access_token and channel_id.
+   * @returns List of channel raids.
+   */
+  async getChannelRaids(params: { access_token: string; channel_id: string }): Promise<any> {
+    const endpoint = `/channels/${params.channel_id}/raids`; // Verify!
+    logger.debug(`Fetching raids for channel ${params.channel_id}`);
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, true, params.access_token);
+  }
 
-    async getChannelHosts(params: { access_token: string; channel_id: string }): Promise<any> {
-        const endpoint = `/channels/${params.channel_id}/hosts`; // Verify!
-        logger.debug(`Fetching hosts for channel ${params.channel_id}`);
-        return this.makeRequest<any>('GET', endpoint, undefined, {}, true, params.access_token);
-    }
+  /**
+   * Gets hosts for a specific channel.
+   * @param params Request parameters including access_token and channel_id.
+   * @returns List of channel hosts.
+   */
+  async getChannelHosts(params: { access_token: string; channel_id: string }): Promise<any> {
+    const endpoint = `/channels/${params.channel_id}/hosts`; // Verify!
+    logger.debug(`Fetching hosts for channel ${params.channel_id}`);
+    return this.makeRequest<any>('GET', endpoint, undefined, {}, true, params.access_token);
+  }
 }

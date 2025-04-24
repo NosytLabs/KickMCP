@@ -6,6 +6,8 @@ import { logger } from '../../utils/logger';
  * Service for handling Kick API Chat methods.
  */
 export class ChatService extends BaseKickService {
+  // Implement the abstract property from BaseKickService
+  protected basePath = '/chat'; // Base path for chat endpoints
 
   /**
    * Gets chat history for a channel.

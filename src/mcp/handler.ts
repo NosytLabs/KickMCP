@@ -307,47 +307,9 @@ export const setupMCPHandler = (kickService: KickService): void => {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             throw new JSONRPCErrorException('Failed to retrieve access token.', -32011, errorMessage);
         }
+    }
     // Register all the method handlers for the KickService
     // This will be implemented in the next section
-    
-    // Start the cleanup process for auth flows
-    startAuthFlowCleanup();
-    
-    // Setup readline interface for JSON-RPC
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        terminal: false
-    });
-
-    // Handle incoming JSON-RPC requests
-    rl.on('line', async (line) => {
-        try {
-            const request = JSON.parse(line) as JSONRPCRequest;
-            const response = await jsonRpcServer.receive(request);
-            if (response) {
-                console.log(JSON.stringify(response));
-            }
-        } catch (error) {
-            logger.error('Error processing request:', error);
-            const errorResponse: JSONRPCResponse = {
-                jsonrpc: '2.0',
-                id: null,
-                error: {
-                    code: -32700,
-                    message: 'Parse error',
-                    data: error instanceof Error ? error.message : 'Unknown error'
-                }
-            };
-            console.log(JSON.stringify(errorResponse));
-        }
-    });
-
-    // Cleanup on process exit
-    process.on('exit', () => {
-        stopAuthFlowCleanup();
-        rl.close();
-    });
 }
 
     // Basic rate-limiting mechanism to prevent abuse
@@ -355,10 +317,9 @@ export const setupMCPHandler = (kickService: KickService): void => {
     const applyRateLimit = (method: string): void => {
         const now = Date.now();
         if (!rateLimit[method]) {
-    // Configurable rate limiting for Smithery.ai performance guidelines
-    const callsPerMinute = parseInt(process.env.RATE_LIMIT_CALLS_PER_MINUTE || '10', 10);
-    const rateLimiter = new RateLimiter(callsPerMinute, 60000);
-
+            // Configurable rate limiting for Smithery.ai performance guidelines
+            const callsPerMinute = parseInt(process.env.RATE_LIMIT_CALLS_PER_MINUTE || '10', 10);
+            
             rateLimit[method] = { lastCall: now, callCount: 1, limit: 10, window: 60000 }; // 10 calls per minute
             return;
         }
@@ -373,47 +334,9 @@ export const setupMCPHandler = (kickService: KickService): void => {
             config.callCount = 1;
             config.lastCall = now;
         }
+    }
     // Register all the method handlers for the KickService
     // This will be implemented in the next section
-    
-    // Start the cleanup process for auth flows
-    startAuthFlowCleanup();
-    
-    // Setup readline interface for JSON-RPC
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        terminal: false
-    });
-
-    // Handle incoming JSON-RPC requests
-    rl.on('line', async (line) => {
-        try {
-            const request = JSON.parse(line) as JSONRPCRequest;
-            const response = await jsonRpcServer.receive(request);
-            if (response) {
-                console.log(JSON.stringify(response));
-            }
-        } catch (error) {
-            logger.error('Error processing request:', error);
-            const errorResponse: JSONRPCResponse = {
-                jsonrpc: '2.0',
-                id: null,
-                error: {
-                    code: -32700,
-                    message: 'Parse error',
-                    data: error instanceof Error ? error.message : 'Unknown error'
-                }
-            };
-            console.log(JSON.stringify(errorResponse));
-        }
-    });
-
-    // Cleanup on process exit
-    process.on('exit', () => {
-        stopAuthFlowCleanup();
-        rl.close();
-    });
 }
 
     // User Methods - Use kickService.user with rate-limiting
@@ -961,54 +884,18 @@ export const setupMCPHandler = (kickService: KickService): void => {
 
     // --- MCP Standard Methods ---
     // Add Smithery.ai-specific metadata to server information
-    serverInfo.metadata = {
-      platform: 'Smithery.ai',
-      version: '1.0.0',
-      compliant: true
+    const serverInfo = {
+      metadata: {
+        platform: 'Smithery.ai',
+        version: '1.0.0',
+        compliant: true
+      }
     }
     // Register all the method handlers for the KickService
     // This will be implemented in the next section
-    
-    // Start the cleanup process for auth flows
-    startAuthFlowCleanup();
-    
-    // Setup readline interface for JSON-RPC
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        terminal: false
-    });
-
-    // Handle incoming JSON-RPC requests
-    rl.on('line', async (line) => {
-        try {
-            const request = JSON.parse(line) as JSONRPCRequest;
-            const response = await jsonRpcServer.receive(request);
-            if (response) {
-                console.log(JSON.stringify(response));
-            }
-        } catch (error) {
-            logger.error('Error processing request:', error);
-            const errorResponse: JSONRPCResponse = {
-                jsonrpc: '2.0',
-                id: null,
-                error: {
-                    code: -32700,
-                    message: 'Parse error',
-                    data: error instanceof Error ? error.message : 'Unknown error'
-                }
-            };
-            console.log(JSON.stringify(errorResponse));
-        }
-    });
-
-    // Cleanup on process exit
-    process.on('exit', () => {
-        stopAuthFlowCleanup();
-        rl.close();
-    });
 }
 
+    // Add standard MCP methods
     jsonRpcServer.addMethod('initialize', async () => {
         logger.info('MCP Initialized');
         // Perform any server initialization if needed
@@ -1036,11 +923,6 @@ export const setupMCPHandler = (kickService: KickService): void => {
     });
 
     // --- Start Listening ---
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout, // Required by readline, though we write directly
-        terminal: false
-    });
 
     // Implement dynamic tool list updates
     const updateToolList = () => {
@@ -1052,7 +934,20 @@ export const setupMCPHandler = (kickService: KickService): void => {
       toolSchemas.push(...updatedSchemas.filter(schema => !toolSchemas.some(existing => existing.name === schema.name)));
     // Register all the method handlers for the KickService
     // This will be implemented in the next section
+}
+    // Implement dynamic tool list updates
+    const updateToolList = () => {
+      const updatedSchemas = kickService.getAllMethods().map(method => ({
+        name: `kick/${method}`,
+        description: `Dynamically updated method for ${method}`,
+        inputSchema: { type: 'object', properties: {}, required: [] }
+      }));
+      toolSchemas.push(...updatedSchemas.filter(schema => !toolSchemas.some(existing => existing.name === schema.name)));
+    };
     
+    updateToolList();
+    setInterval(updateToolList, 60000); // Update every minute
+
     // Start the cleanup process for auth flows
     startAuthFlowCleanup();
     
@@ -1062,38 +957,6 @@ export const setupMCPHandler = (kickService: KickService): void => {
         output: process.stdout,
         terminal: false
     });
-
-    // Handle incoming JSON-RPC requests
-    rl.on('line', async (line) => {
-        try {
-            const request = JSON.parse(line) as JSONRPCRequest;
-            const response = await jsonRpcServer.receive(request);
-            if (response) {
-                console.log(JSON.stringify(response));
-            }
-        } catch (error) {
-            logger.error('Error processing request:', error);
-            const errorResponse: JSONRPCResponse = {
-                jsonrpc: '2.0',
-                id: null,
-                error: {
-                    code: -32700,
-                    message: 'Parse error',
-                    data: error instanceof Error ? error.message : 'Unknown error'
-                }
-            };
-            console.log(JSON.stringify(errorResponse));
-        }
-    });
-
-    // Cleanup on process exit
-    process.on('exit', () => {
-        stopAuthFlowCleanup();
-        rl.close();
-    });
-}
-    updateToolList();
-    setInterval(updateToolList, 60000); // Update every minute
 
     rl.on('line', async (line) => {
         logger.debug(`Received line: ${line}`);
@@ -1159,4 +1022,4 @@ export const setupMCPHandler = (kickService: KickService): void => {
     });
 
     logger.info('Kick MCP Server handler started and listening on stdin.');
-};
+}

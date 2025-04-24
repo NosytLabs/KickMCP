@@ -1,11 +1,14 @@
 import { BaseKickService } from './BaseKickService';
 import * as KickTypes from '../../types/kick';
 import { logger } from '../../utils/logger';
+import { KickApiError } from '../../utils/errors';
 
 /**
  * Service for handling Kick API Stream methods.
  */
 export class StreamService extends BaseKickService {
+  // Implement the abstract property from BaseKickService
+  protected basePath = '/streams'; // Base path for stream endpoints
 
   /**
    * Gets a list of current livestreams.

@@ -6,6 +6,9 @@ import { logger } from '../../utils/logger';
  * Service for handling Kick API User methods.
  */
 export class UserService extends BaseKickService {
+  // Implement the abstract property from BaseKickService
+  protected basePath = '/users'; // Base path for user endpoints
+
   /**
    * Gets the authenticated user's profile.
    * Requires authentication.

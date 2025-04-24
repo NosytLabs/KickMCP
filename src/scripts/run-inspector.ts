@@ -1,4 +1,5 @@
-import { MCPInspector } from '../utils/mcp-inspector';
+import { MCPDiagnostics } from '../utils/mcpDiagnostics';
+import { MCPCompatibility } from '../utils/mcpCompatibility';
 import { logger } from '../utils/logger';
 
 async function main() {
@@ -6,10 +7,10 @@ async function main() {
   
   try {
     // Run general MCP compatibility checks first
-    const mcpCompatibilityResults = await MCPInspector.checkMCPCompatibility();
+    const mcpCompatibilityResults = await MCPCompatibility.checkMCPCompatibility();
     
     // Then run Kick-specific diagnostics
-    const diagnosticResults = await MCPInspector.runDiagnostics();
+    const diagnosticResults = await MCPDiagnostics.runDiagnostics();
     
     console.log('\n=== MCP Inspector Results ===\n');
     
@@ -35,7 +36,8 @@ async function main() {
       process.exit(1);
     }
   } catch (error) {
-    logger.error('Error running MCP Inspector:', error);
+    const { MCPErrorHandler } = await import('../utils/mcpErrorHandler');
+    MCPErrorHandler.logError('Error running MCP Inspector', error);
     console.error('An error occurred while running the MCP Inspector.');
     process.exit(1);
   }
