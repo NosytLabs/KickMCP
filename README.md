@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/nosytlabs-kickmcp-badge.png)](https://mseep.ai/app/nosytlabs-kickmcp)
+
 # 🎮 KickMCP - Kick API Integration Made Easy
 
 [![npm version](https://img.shields.io/npm/v/kick-mcp.svg)](https://www.npmjs.com/package/kick-mcp)
