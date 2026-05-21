@@ -14,7 +14,7 @@
 - Copy `.env.example` to `.env`.
 - Fill `KICK_CLIENT_ID` and `KICK_CLIENT_SECRET`.
 - Optional write tools use `KICK_USER_ACCESS_TOKEN` or `KICK_BOT_ACCESS_TOKEN`.
-- ChatGPT requires HTTPS, so tunnel `http://localhost:8787/mcp` with ngrok or similar when connecting from ChatGPT developer mode.
+- ChatGPT requires HTTPS, so tunnel `http://localhost:8787/chatgpt/mcp` with ngrok or similar when connecting from ChatGPT developer mode.
 
 ## Validation
 

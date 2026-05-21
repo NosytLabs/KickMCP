@@ -12,6 +12,7 @@ import {
   getCategories,
   getChannelRewards,
   getChannels,
+  getDropsClaims,
   getKicksLeaderboard,
   getLivestreams,
   getPublicKey,
@@ -24,6 +25,7 @@ import {
   sendChatMessage,
   updateChannel,
   updateChannelReward,
+  verifyWebhookSignature,
 } from "./kick/client.js";
 import {
   createKickEventsInput,
@@ -36,6 +38,7 @@ import {
   getKickCategoriesInput,
   getKickChannelInput,
   getKickChannelOutput,
+  getKickDropsClaimsInput,
   getKickKicksLeaderboardInput,
   getKickLivestreamsInput,
   getKickLivestreamsOutput,
@@ -51,12 +54,16 @@ import {
   unmoderateKickUserInput,
   updateKickChannelInput,
   updateKickRewardInput,
+  verifyKickWebhookSignatureInput,
+  verifyKickWebhookSignatureOutput,
 } from "./tool-schemas.js";
 import { widgetCss } from "./widget/styles.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WIDGET_URI = "ui://widget/kick-v1.html";
 const RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
+
+export type KickMcpProfile = "developer" | "chatgpt";
 
 function loadWidgetJs() {
   return readFileSync(path.resolve(__dirname, "../web-dist/widget.js"), "utf8");
@@ -75,8 +82,10 @@ function meta(invoking: string, invoked: string, visible = true) {
   };
 }
 
-export function createMcpServer() {
-  const server = new McpServer({ name: "kick", version: "1.0.0" });
+export function createMcpServer(options: { profile?: KickMcpProfile } = {}) {
+  const profile = options.profile ?? "developer";
+  const isDeveloperProfile = profile === "developer";
+  const server = new McpServer({ name: profile === "chatgpt" ? "kick-chatgpt-app" : "kick", version: "1.0.0" });
 
   server.registerResource("kick-widget", WIDGET_URI, {}, async () => ({
     contents: [
@@ -93,7 +102,10 @@ export function createMcpServer() {
               resourceDomains: [config.publicBaseUrl, "https://images.kick.com", "https://files.kick.com"],
             },
           },
-          "openai/widgetDescription": "KICK app dashboard for channel, livestream, chat, moderation, rewards, and webhook tool results.",
+          "openai/widgetDescription":
+            profile === "chatgpt"
+              ? "KICK creator dashboard for channel, livestream, rewards, KICKs, and approved chat actions."
+              : "KICK developer dashboard for channel, livestream, chat, moderation, rewards, and webhook tool results.",
         },
       },
     ],
@@ -170,7 +182,7 @@ export function createMcpServer() {
       description: "Update the authenticated user's Kick livestream title, category, or custom tags. Requires channel:write and explicit user approval.",
       inputSchema: updateKickChannelInput,
       outputSchema: genericDataOutput,
-      annotations: { readOnlyHint: false, destructiveHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
       _meta: meta("Updating Kick channel", "Kick channel updated", false),
     },
     async (input) => {
@@ -186,7 +198,7 @@ export function createMcpServer() {
       description: "Send a Kick chat message as user or bot. Requires chat:write and explicit approval of exact message text.",
       inputSchema: sendKickChatInput,
       outputSchema: sendKickChatOutput,
-      annotations: { readOnlyHint: false, destructiveHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
       _meta: meta("Sending Kick chat", "Kick chat sent"),
     },
     async (input) => {
@@ -198,6 +210,37 @@ export function createMcpServer() {
     },
   );
 
+  if (!isDeveloperProfile) {
+    server.registerTool("kick_get_channel_rewards", {
+      title: "Get Kick Channel Rewards",
+      description: "List rewards for the authenticated broadcaster's channel. Requires channel:rewards:read or channel:rewards:write.",
+      inputSchema: emptyInput,
+      outputSchema: genericDataOutput,
+      annotations: { readOnlyHint: true },
+      _meta: meta("Loading Kick rewards", "Kick rewards loaded", false),
+    }, async () => ({ structuredContent: { data: await getChannelRewards() }, content: text("Loaded Kick channel rewards.") }));
+
+    server.registerTool("kick_get_reward_redemptions", {
+      title: "Get Kick Reward Redemptions",
+      description: "List reward redemptions for the authenticated broadcaster's channel.",
+      inputSchema: getKickRedemptionsInput,
+      outputSchema: genericDataOutput,
+      annotations: { readOnlyHint: true },
+      _meta: meta("Loading Kick redemptions", "Kick redemptions loaded", false),
+    }, async (input) => ({ structuredContent: { data: await getRewardRedemptions(input) }, content: text("Loaded Kick reward redemptions.") }));
+
+    server.registerTool("kick_get_kicks_leaderboard", {
+      title: "Get KICKs Leaderboard",
+      description: "Get KICKs leaderboard data for the authenticated broadcaster. Requires a user token with kicks:read.",
+      inputSchema: getKickKicksLeaderboardInput,
+      outputSchema: genericDataOutput,
+      annotations: { readOnlyHint: true },
+      _meta: meta("Loading KICKs leaderboard", "KICKs leaderboard loaded", false),
+    }, async (input) => ({ structuredContent: { data: await getKicksLeaderboard(input) }, content: text("Loaded KICKs leaderboard.") }));
+
+    return server;
+  }
+
   server.registerTool(
     "kick_delete_chat_message",
     {
@@ -205,7 +248,7 @@ export function createMcpServer() {
       description: "Delete a Kick chat message by message ID. Requires moderation:chat_message:manage and explicit user confirmation.",
       inputSchema: deleteKickChatInput,
       outputSchema: deleteKickChatOutput,
-      annotations: { readOnlyHint: false, destructiveHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
       _meta: meta("Deleting Kick chat", "Kick chat deleted"),
     },
     async ({ message_id }) => {
@@ -228,7 +271,7 @@ export function createMcpServer() {
     description: "Create a channel reward. Requires channel:rewards:write and explicit approval.",
     inputSchema: createKickRewardInput,
     outputSchema: genericDataOutput,
-    annotations: { readOnlyHint: false, destructiveHint: false },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     _meta: meta("Creating Kick reward", "Kick reward created", false),
   }, async (input) => ({ structuredContent: { data: await createChannelReward(input) }, content: text("Created Kick channel reward.") }));
 
@@ -237,7 +280,7 @@ export function createMcpServer() {
     description: "Update a channel reward created by this app. Requires channel:rewards:write and explicit approval.",
     inputSchema: updateKickRewardInput,
     outputSchema: genericDataOutput,
-    annotations: { readOnlyHint: false, destructiveHint: false },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     _meta: meta("Updating Kick reward", "Kick reward updated", false),
   }, async ({ id, ...input }) => ({ structuredContent: { data: await updateChannelReward(id, input) }, content: text(`Updated Kick reward ${id}.`) }));
 
@@ -246,7 +289,7 @@ export function createMcpServer() {
     description: "Delete a channel reward created by this app. Requires channel:rewards:write and explicit confirmation.",
     inputSchema: rewardIdInput,
     outputSchema: genericDataOutput,
-    annotations: { readOnlyHint: false, destructiveHint: true },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
     _meta: meta("Deleting Kick reward", "Kick reward deleted", false),
   }, async ({ id }) => {
     await deleteChannelReward(id);
@@ -268,7 +311,7 @@ export function createMcpServer() {
       description: `${action === "accept" ? "Accept" : "Reject"} one or more channel reward redemptions. Requires channel:rewards:write and explicit approval.`,
       inputSchema: resolveKickRedemptionsInput,
       outputSchema: genericDataOutput,
-      annotations: { readOnlyHint: false, destructiveHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
       _meta: meta(`${action === "accept" ? "Accepting" : "Rejecting"} Kick redemptions`, `Kick redemptions ${action}ed`, false),
     }, async ({ ids }) => ({ structuredContent: { data: await resolveRewardRedemptions(action, ids) }, content: text(`${action}ed ${ids.length} Kick redemption(s).`) }));
   }
@@ -282,12 +325,33 @@ export function createMcpServer() {
     _meta: meta("Loading Kick event subscriptions", "Kick event subscriptions loaded", false),
   }, async (input) => ({ structuredContent: { data: await listEventSubscriptions(input) }, content: text("Loaded Kick event subscriptions.") }));
 
+  server.registerTool("kick_get_drops_claims", {
+    title: "Get Kick Drops Claims",
+    description: "Get Drops reward claims for organization-associated OAuth apps. Requires app credentials associated with the organization.",
+    inputSchema: getKickDropsClaimsInput,
+    outputSchema: genericDataOutput,
+    annotations: { readOnlyHint: true },
+    _meta: meta("Loading Kick Drops claims", "Kick Drops claims loaded", false),
+  }, async (input) => ({ structuredContent: { data: await getDropsClaims(input) }, content: text("Loaded Kick Drops claims.") }));
+
+  server.registerTool("kick_verify_webhook_signature", {
+    title: "Verify Kick Webhook Signature",
+    description: "Verify a Kick webhook signature using Kick-Event-Message-Id, Kick-Event-Message-Timestamp, raw body, and Kick-Event-Signature.",
+    inputSchema: verifyKickWebhookSignatureInput,
+    outputSchema: verifyKickWebhookSignatureOutput,
+    annotations: { readOnlyHint: true },
+    _meta: meta("Verifying Kick webhook", "Kick webhook verified", false),
+  }, async (input) => {
+    const result = await verifyWebhookSignature(input);
+    return { structuredContent: result, content: text(result.verified ? "Kick webhook signature is valid." : "Kick webhook signature is invalid.") };
+  });
+
   server.registerTool("kick_create_event_subscriptions", {
     title: "Create Kick Event Subscriptions",
     description: "Create Kick webhook event subscriptions. Requires a webhook URL configured in the Kick app and explicit approval.",
     inputSchema: createKickEventsInput,
     outputSchema: genericDataOutput,
-    annotations: { readOnlyHint: false, destructiveHint: false },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     _meta: meta("Creating Kick event subscriptions", "Kick event subscriptions created", false),
   }, async (input) => ({ structuredContent: { data: await createEventSubscriptions(input) }, content: text("Created Kick event subscriptions.") }));
 
@@ -296,7 +360,7 @@ export function createMcpServer() {
     description: "Delete Kick event subscriptions by ID. Requires explicit confirmation.",
     inputSchema: deleteKickEventsInput,
     outputSchema: genericDataOutput,
-    annotations: { readOnlyHint: false, destructiveHint: true },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
     _meta: meta("Deleting Kick event subscriptions", "Kick event subscriptions deleted", false),
   }, async ({ ids }) => {
     await deleteEventSubscriptions(ids);
@@ -305,7 +369,7 @@ export function createMcpServer() {
 
   server.registerTool("kick_get_kicks_leaderboard", {
     title: "Get KICKs Leaderboard",
-    description: "Get KICKs leaderboard data for a broadcaster.",
+    description: "Get KICKs leaderboard data for the authenticated broadcaster. Requires a user token with kicks:read.",
     inputSchema: getKickKicksLeaderboardInput,
     outputSchema: genericDataOutput,
     annotations: { readOnlyHint: true },
@@ -317,7 +381,7 @@ export function createMcpServer() {
     description: "Ban a user, or timeout them when duration is provided. Requires moderation:ban and explicit approval.",
     inputSchema: moderateKickUserInput,
     outputSchema: genericDataOutput,
-    annotations: { readOnlyHint: false, destructiveHint: true },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
     _meta: meta("Applying Kick moderation", "Kick moderation applied", false),
   }, async (input) => ({ structuredContent: { data: await moderateBan(input) }, content: text("Applied Kick moderation action.") }));
 
@@ -326,7 +390,7 @@ export function createMcpServer() {
     description: "Remove a Kick ban or timeout. Requires moderation:ban and explicit approval.",
     inputSchema: unmoderateKickUserInput,
     outputSchema: genericDataOutput,
-    annotations: { readOnlyHint: false, destructiveHint: false },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     _meta: meta("Removing Kick moderation", "Kick moderation removed", false),
   }, async (input) => ({ structuredContent: { data: await removeModerationBan(input) }, content: text("Removed Kick moderation action.") }));
 

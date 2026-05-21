@@ -107,7 +107,7 @@ export const getKickRedemptionsInput = {
 };
 
 export const resolveKickRedemptionsInput = {
-  ids: z.array(z.string().min(1)).min(1).max(50),
+  ids: z.array(z.string().min(1)).min(1).max(25),
 };
 
 export const listKickEventsInput = {
@@ -140,8 +140,27 @@ export const deleteKickEventsInput = {
 };
 
 export const getKickKicksLeaderboardInput = {
-  broadcaster_user_id: z.number().int().positive(),
+  top: z.number().int().min(1).max(100).default(10).optional(),
+};
+
+export const getKickDropsClaimsInput = {
+  campaign_id: z.string().min(1).optional(),
+  limit: z.number().int().min(1).max(1000).default(10).optional(),
   cursor: z.string().min(1).optional(),
+  user_id: z.number().int().positive().optional(),
+  claim_id: z.string().min(1).optional(),
+};
+
+export const verifyKickWebhookSignatureInput = {
+  messageId: z.string().min(1),
+  timestamp: z.string().min(1),
+  body: z.string(),
+  signature: z.string().min(1),
+  publicKeyPem: z.string().min(1).optional(),
+};
+
+export const verifyKickWebhookSignatureOutput = {
+  verified: z.boolean(),
 };
 
 export const moderateKickUserInput = {

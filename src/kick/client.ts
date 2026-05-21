@@ -1,4 +1,5 @@
 import { config } from "../config.js";
+import { createVerify } from "node:crypto";
 import type {
   KickApiEnvelope,
   KickChannel,
@@ -250,10 +251,34 @@ export async function deleteEventSubscriptions(ids: string[]) {
   });
 }
 
-export async function getKicksLeaderboard(input: { broadcaster_user_id: number; cursor?: string }) {
-  const query = new URLSearchParams({ broadcaster_user_id: String(input.broadcaster_user_id) });
+export async function getDropsClaims(input: {
+  campaign_id?: string;
+  limit?: number;
+  cursor?: string;
+  user_id?: number;
+  claim_id?: string;
+}) {
+  const query = new URLSearchParams();
+  if (input.campaign_id) query.set("campaign_id", input.campaign_id);
+  if (input.limit) query.set("limit", String(input.limit));
   if (input.cursor) query.set("cursor", input.cursor);
-  return request<unknown>("/public/v1/kicks/leaderboard", { token: await getAppAccessToken(), query });
+  if (input.user_id) query.set("user_id", String(input.user_id));
+  if (input.claim_id) query.set("claim_id", input.claim_id);
+  return request<unknown>("/public/v1/drops/claims", {
+    token: await getAppAccessToken(),
+    query,
+  });
+}
+
+export async function getKicksLeaderboard(input: { top?: number }) {
+  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
+  if (!token) {
+    throw new Error("Missing KICK_USER_ACCESS_TOKEN for KICKs leaderboard. The official endpoint requires kicks:read for the authenticated broadcaster.");
+  }
+
+  const query = new URLSearchParams();
+  if (input.top) query.set("top", String(input.top));
+  return request<unknown>("/public/v1/kicks/leaderboard", { token, query });
 }
 
 export async function moderateBan(input: {
@@ -275,6 +300,34 @@ export async function removeModerationBan(input: { broadcaster_user_id: number; 
 
 export async function getPublicKey() {
   return request<unknown>("/public/v1/public-key");
+}
+
+export async function verifyWebhookSignature(input: {
+  messageId: string;
+  timestamp: string;
+  body: string;
+  signature: string;
+  publicKeyPem?: string;
+}) {
+  const keyResponse = input.publicKeyPem ? undefined : await getPublicKey();
+  const publicKeyPem =
+    input.publicKeyPem ??
+    (typeof keyResponse === "object" && keyResponse && "public_key" in keyResponse
+      ? String((keyResponse as { public_key: unknown }).public_key)
+      : undefined);
+
+  if (!publicKeyPem) {
+    throw new Error("Unable to resolve Kick public key for webhook signature verification.");
+  }
+
+  const payload = `${input.messageId}.${input.timestamp}.${input.body}`;
+  const verifier = createVerify("RSA-SHA256");
+  verifier.update(payload);
+  verifier.end();
+
+  return {
+    verified: verifier.verify(publicKeyPem, input.signature, "base64"),
+  };
 }
 
 export async function sendChatMessage(input: SendChatInput) {

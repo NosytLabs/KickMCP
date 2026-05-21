@@ -6,9 +6,15 @@ import { config } from "./config.js";
 import { createMcpServer } from "./mcp.js";
 import { createKickAuthorizationUrl, exchangeKickAuthorizationCode } from "./kick/oauth.js";
 import { readStoredKickTokens } from "./kick/token-store.js";
+import { verifyWebhookSignature } from "./kick/client.js";
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({
+  limit: "1mb",
+  verify: (req, _res, buf) => {
+    (req as express.Request & { rawBody?: string }).rawBody = buf.toString("utf8");
+  },
+}));
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, name: "kick", kickUserTokenStored: Boolean(readStoredKickTokens()?.access_token) });
@@ -44,19 +50,38 @@ app.get("/kick/oauth/callback", async (req, res, next) => {
   }
 });
 
-app.post("/kick/webhooks", (req, res) => {
+app.post("/kick/webhooks", async (req, res, next) => {
+  try {
+    const messageId = req.header("Kick-Event-Message-Id");
+    const timestamp = req.header("Kick-Event-Message-Timestamp");
+    const signature = req.header("Kick-Event-Signature");
+    const rawBody = (req as express.Request & { rawBody?: string }).rawBody ?? JSON.stringify(req.body);
+    let verified: boolean | undefined;
+
+    if (messageId && timestamp && signature) {
+      verified = (await verifyWebhookSignature({ messageId, timestamp, signature, body: rawBody })).verified;
+      if (!verified) {
+        res.status(401).json({ ok: false, message: "Invalid Kick webhook signature." });
+        return;
+      }
+    }
+
   console.log("Kick webhook received", {
     id: req.header("Kick-Event-Message-Id"),
     type: req.header("Kick-Event-Type"),
     version: req.header("Kick-Event-Version"),
     timestamp: req.header("Kick-Event-Message-Timestamp"),
+    verified,
     body: req.body,
   });
   res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.all("/mcp", async (req, res) => {
-  const server = createMcpServer();
+async function handleMcpRequest(req: express.Request, res: express.Response, profile: "developer" | "chatgpt") {
+  const server = createMcpServer({ profile });
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
 
   res.on("close", () => {
@@ -66,10 +91,17 @@ app.all("/mcp", async (req, res) => {
 
   await server.connect(transport);
   await transport.handleRequest(req, res, req.body);
+}
+
+app.all("/mcp", async (req, res) => {
+  await handleMcpRequest(req, res, "developer");
+});
+
+app.all("/chatgpt/mcp", async (req, res) => {
+  await handleMcpRequest(req, res, "chatgpt");
 });
 
 const httpServer = createServer(app);
 httpServer.listen(config.port, () => {
   console.log(`KICK MCP server listening on http://localhost:${config.port}/mcp`);
 });
-

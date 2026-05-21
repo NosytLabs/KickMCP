@@ -1,7 +1,7 @@
 {
   "name": "kick",
-  "displayName": "KICK",
-  "description": "MCP server and ChatGPT App backend for the official Kick.com public API.",
+  "displayName": "KickMCP",
+  "description": "Unofficial MCP server for the official Kick.com public API.",
   "homepage": "https://github.com/NosytLabs/KickMCP",
   "repository": {
     "type": "git",
@@ -15,6 +15,10 @@
     },
     "streamableHttp": {
       "path": "/mcp"
+    },
+    "chatgptApp": {
+      "path": "/chatgpt/mcp",
+      "displayName": "KickMCP for Creators"
     }
   },
   "configuration": {
@@ -46,12 +50,24 @@
     "kick_accept_reward_redemptions",
     "kick_reject_reward_redemptions",
     "kick_list_event_subscriptions",
+    "kick_get_drops_claims",
+    "kick_verify_webhook_signature",
     "kick_create_event_subscriptions",
     "kick_delete_event_subscriptions",
     "kick_get_kicks_leaderboard",
     "kick_ban_or_timeout_user",
     "kick_unban_user",
     "kick_get_public_key"
+  ],
+  "chatgptAppTools": [
+    "kick_get_users",
+    "kick_get_channels",
+    "kick_get_livestreams",
+    "kick_get_categories",
+    "kick_update_channel",
+    "kick_send_chat_message",
+    "kick_get_channel_rewards",
+    "kick_get_reward_redemptions",
+    "kick_get_kicks_leaderboard"
   ]
 }
-
