@@ -67,6 +67,20 @@ export const getKickCategoriesInput = {
   cursor: z.string().min(4).max(28).optional(),
   limit: z.number().int().min(1).max(1000).default(25).optional(),
 };
+
+export const getKickLegacyCategoriesInput = {
+  q: z.string().min(1).max(100),
+  page: z.number().int().min(1).default(1).optional(),
+};
+
+export const getKickCategoryDetailInput = {
+  category_id: z.number().int().positive(),
+};
+
+export const introspectKickTokenInput = {
+  token_source: z.enum(["app", "user", "bot"]).default("app").optional(),
+};
+
 export const updateKickChannelInput = {
   stream_title: z.string().min(1).max(120).optional(),
   category_id: z.number().int().positive().optional(),

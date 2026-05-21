@@ -2,7 +2,7 @@
   "name": "kick-mcp",
   "version": "1.0.0",
   "private": false,
-  "description": "A production-ready MCP server and ChatGPT app for the Kick.com public API.",
+  "description": "Unofficial MCP server for the official Kick.com public API.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -18,18 +18,17 @@
   },
   "files": [
     "dist",
-    "web-dist",
     "README.md",
     "LICENSE",
     "server.json",
     ".env.example"
   ],
   "scripts": {
-    "build": "npm run build:widget && tsc -p tsconfig.json",
-    "build:widget": "esbuild src/widget/widget.ts --bundle --format=esm --outfile=web-dist/widget.js --minify",
+    "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "start:stdio": "node dist/stdio.js",
+    "live:read": "npm run build && node scripts/live-read-examples.mjs",
     "smoke": "npm run build && node scripts/smoke-test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -38,13 +37,11 @@
     "kick.com",
     "mcp",
     "model-context-protocol",
-    "chatgpt-app",
     "streaming",
     "moderation",
     "webhooks"
   ],
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.23.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
@@ -53,7 +50,6 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^24.10.1",
-    "esbuild": "^0.27.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

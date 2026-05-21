@@ -1,8 +1,8 @@
 # KickMCP Setup Guide
 
-This guide covers scopes, OAuth redirect URLs, webhooks, and ChatGPT options.
+This guide covers Kick OAuth app setup, scopes, redirect URLs, webhooks, and MCP client configuration.
 
-## 1. Create A Kick App
+## 1. Create A Kick OAuth App
 
 Go to:
 
@@ -35,14 +35,13 @@ Use the smallest scope set that matches the workflow.
 
 ### Read-Only Public Discovery
 
-Good for browsing livestreams, channels, categories, public keys, and event subscriptions with app credentials.
+Good for livestreams, livestream stats, channels, categories, event subscriptions, public key, and token introspection with app credentials.
 
 ```text
-channel:read
-events:subscribe
+channel:read events:subscribe
 ```
 
-App access tokens can also access several public endpoints without user consent.
+Several public endpoints also work with app access tokens without user consent.
 
 ### Streamer Assistant
 
@@ -76,6 +75,14 @@ Good for event subscription management.
 events:subscribe
 ```
 
+### KICKs Leaderboard
+
+Good for reading the authenticated broadcaster's KICKs leaderboard.
+
+```text
+user:read kicks:read
+```
+
 ### Full Local Development
 
 Useful when testing every implemented user-token tool.
@@ -84,7 +91,7 @@ Useful when testing every implemented user-token tool.
 user:read channel:read channel:write channel:rewards:read channel:rewards:write chat:write events:subscribe moderation:ban moderation:chat_message:manage kicks:read
 ```
 
-`streamkey:read` exists in Kick's scope docs, but KickMCP does not currently expose a stream-key tool.
+`streamkey:read` exists in Kick's scope docs, but KickMCP does not currently expose a stream-key tool because the current OpenAPI/doc surface checked for this repo does not include a stream-key endpoint.
 
 ## 3. Configure Environment
 
@@ -99,6 +106,7 @@ KICK_CLIENT_ID=...
 KICK_CLIENT_SECRET=...
 KICK_REDIRECT_URI=http://localhost:8787/kick/oauth/callback
 KICK_SCOPES=user:read channel:read channel:write channel:rewards:read channel:rewards:write chat:write events:subscribe moderation:ban moderation:chat_message:manage kicks:read
+KICK_VERIFY_WEBHOOK_SIGNATURES=true
 ```
 
 Run:
@@ -115,11 +123,11 @@ Open:
 http://localhost:8787/kick/oauth/start
 ```
 
-KickMCP stores user tokens in `.kick-tokens.json`. Do not commit that file.
+KickMCP stores user tokens in `.kick-tokens.json`. It stores `expires_at` when possible and refreshes stored user tokens automatically when a refresh token is available. Do not commit that file.
 
 ## 4. Webhooks, Not WebSockets
 
-Kick's official docs currently describe real-time delivery through webhooks and event subscriptions, not a general public websocket API.
+Kick's official docs describe real-time delivery through event subscriptions and webhooks, not a general public websocket API.
 
 Use:
 
@@ -147,7 +155,11 @@ Kick webhook signatures use:
 - `Kick-Event-Signature`
 - public key from `GET /public/v1/public-key`
 
-KickMCP verifies signatures in `POST /kick/webhooks` when signature headers are present.
+KickMCP verifies webhook signatures by default. For local unsigned test payloads only:
+
+```text
+KICK_VERIFY_WEBHOOK_SIGNATURES=false
+```
 
 ## 5. MCP Client Setup
 
@@ -169,32 +181,33 @@ KickMCP verifies signatures in `POST /kick/webhooks` when signature headers are 
 
 ### HTTP
 
-Developer profile:
-
 ```text
 http://localhost:8787/mcp
 ```
 
-Curated safer profile:
+## 6. Live Verification
 
-```text
-http://localhost:8787/chatgpt/mcp
+Run:
+
+```bash
+npm run smoke
+npm run live:read
 ```
 
-## 6. ChatGPT: App vs Plugin vs Action
+`npm run smoke` is pass/fail. It checks the MCP tool list and safe live reads. It does not execute write tools.
 
-Legacy ChatGPT plugins are not the recommended target for new work.
+`npm run live:read` prints example live API reads for docs/debugging. It never prints client secrets, access tokens, or refresh tokens.
 
-Current options:
+## 7. Safety Boundaries
 
-- Apps SDK / MCP: best fit for this repo and the `/chatgpt/mcp` profile.
-- Custom GPT Action: possible, but requires REST endpoints plus an OpenAPI schema. MCP JSON-RPC tools cannot be imported directly as a GPT Action.
-- Public app submission: only use a clearly unofficial name unless you have rights to official Kick branding.
+These tools can change Kick state and should require explicit human confirmation in AI clients:
 
-Recommended approach for now:
+- `kick_update_channel`
+- `kick_send_chat_message`
+- `kick_delete_chat_message`
+- reward create/update/delete tools
+- reward redemption accept/reject tools
+- event subscription create/delete tools
+- moderation tools
 
-- Publish/use KickMCP as an MCP server.
-- Let users add it to MCP-capable clients.
-- Use `/chatgpt/mcp` for private ChatGPT developer testing or workspace apps.
-- Do not submit as an official `KICK` app unless you have brand permission and a production review-ready deployment.
-
+KickMCP does not provide historical chat logs because Kick does not expose that as a public API. Subscribe to `chat.message.sent` and store webhook payloads if your agent needs searchable chat history.

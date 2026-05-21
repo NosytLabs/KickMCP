@@ -1,6 +1,6 @@
 ---
 name: kick-mcp
-description: Use this skill when working with the KickMCP repository, integrating Kick.com APIs through MCP, testing the local MCP server, or deciding which Kick tools are safe to expose to AI clients.
+description: Use this skill when working with the KickMCP repository, integrating Kick.com APIs through MCP, testing the local MCP server, or deciding which Kick tools are safe for AI agents.
 ---
 
 # KickMCP
@@ -20,38 +20,38 @@ npm install
 npm run typecheck
 npm run build
 npm run smoke
+npm run live:read
 npm run start
 npm run start:stdio
 ```
 
-Read `docs/setup.md` before changing scopes, redirect URLs, webhook behavior, or ChatGPT integration guidance.
+Read `docs/setup.md` before changing scopes, redirect URLs, webhook behavior, OAuth token storage, or MCP client guidance.
 
 Use `npm run smoke` before claiming the server works. It verifies:
 
 - build output
-- developer `/mcp` tool list
-- curated `/chatgpt/mcp` tool list
-- app-token reads for livestreams, channels, categories, public key, and event subscriptions
-- Drops claims when the configured app is associated with a Kick organization; otherwise the expected auth error is reported
+- `/mcp` tool list
+- app-token reads for livestreams, livestream stats, channels, categories, category detail, token introspection, public key, and event subscriptions
+- Drops claims when the configured app is associated with a Kick organization; otherwise the expected auth boundary is reported
 - user-token-gated tools return clear errors when no user token is configured
 
-## Tool Profiles
+Use `npm run live:read` when you need printable read-only examples from the live Kick API. It never prints secrets or token values.
 
-Developer MCP endpoint:
+## MCP Endpoint
+
+HTTP:
 
 ```text
 /mcp
 ```
 
-This is the full developer/admin surface for local tools, coding agents, internal automations, and advanced MCP clients.
+Stdio:
 
-Curated ChatGPT-style endpoint:
-
-```text
-/chatgpt/mcp
+```bash
+kick-mcp
 ```
 
-This profile is intentionally smaller. It avoids default exposure of delete, ban, webhook admin, public-key plumbing, and reward mutation tools.
+This is the full developer/admin MCP surface for local tools, coding agents, OpenClaw/Hermes-style automations, and advanced MCP clients.
 
 ## Recommended Workflows
 
@@ -59,9 +59,13 @@ This profile is intentionally smaller. It avoids default exposure of delete, ban
 
 Use:
 
+- `kick_introspect_token`
 - `kick_get_channels`
 - `kick_get_livestreams`
+- `kick_get_livestream_stats`
 - `kick_get_categories`
+- `kick_search_categories_legacy`
+- `kick_get_category_detail`
 - `kick_get_public_key`
 - `kick_list_event_subscriptions`
 
@@ -79,7 +83,7 @@ Use only with a user token and explicit confirmation:
 
 ### Developer/Admin Actions
 
-Use only in the `/mcp` profile:
+Use explicit confirmation:
 
 - webhook subscription create/delete
 - Drops claim retrieval
@@ -89,11 +93,12 @@ Use only in the `/mcp` profile:
 - moderation
 - chat delete
 
-### Example Prompts
+### Agent Prompts
 
-- "List live Kick streams in Just Chatting, then summarize the top result."
+- "List top live Kick streams and summarize the first result."
 - "Look up channel slug `example` and show the broadcaster ID."
-- "Find categories matching `Minecraft`."
+- "Find categories matching `Minecraft`, then get detail for the best category ID."
+- "Check whether this configured Kick token is active."
 - "Draft a Kick chat announcement, but do not send it."
 - "Verify this Kick webhook signature with the raw body and headers."
 - "Fetch Drops claims for campaign ID `...` if this app is authorized."
@@ -103,15 +108,17 @@ Use only in the `/mcp` profile:
 - Never commit `.env`, `.kick-tokens.json`, client secrets, access tokens, or refresh tokens.
 - Do not run write tools in tests unless the user explicitly gives a target and confirms the action.
 - Treat chat sends, chat deletes, moderation, reward writes, and event-subscription writes as explicit-confirmation actions.
-- Keep claims aligned to official Kick docs. Do not add polls, predictions, stream start/stop, or unofficial chat listening unless Kick documents those endpoints.
+- Keep claims aligned to official Kick docs. Do not add polls, predictions, stream start/stop, historical chat-log reads, or unofficial chat listening unless Kick documents those endpoints.
 
 ## Current Auth Reality
 
-App credentials can smoke-test public reads such as livestreams, channels, categories, public key, and event subscriptions.
+App credentials can smoke-test livestreams, livestream stats, channels, categories, public key, token introspection, and event subscription listing.
 
 User access tokens are required for broadcaster-scoped actions and private reads such as channel rewards, reward redemptions, KICKs leaderboard, chat writes, channel updates, and moderation.
 
-Drops claims use app access tokens, but only for OAuth apps associated with a Kick organization.
+Stored OAuth user tokens are refreshed automatically when `.kick-tokens.json` includes a refresh token.
+
+Drops claims use app access tokens, but only for OAuth apps associated with the relevant Kick organization.
 
 ## Docs Coverage Checklist
 
@@ -129,3 +136,5 @@ Then update:
 - `README.md`
 - `server.json`
 - `scripts/smoke-test.mjs`
+- `scripts/live-read-examples.mjs`
+- `docs/kick-api-coverage.md`

@@ -21,4 +21,5 @@ export const config = {
     "user:read channel:read channel:write channel:rewards:read channel:rewards:write chat:write events:subscribe moderation:ban moderation:chat_message:manage kicks:read",
   kickUserAccessToken: process.env.KICK_USER_ACCESS_TOKEN,
   kickBotAccessToken: process.env.KICK_BOT_ACCESS_TOKEN,
+  verifyWebhookSignatures: process.env.KICK_VERIFY_WEBHOOK_SIGNATURES !== "false",
 };

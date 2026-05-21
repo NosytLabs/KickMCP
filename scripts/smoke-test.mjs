@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createSign, generateKeyPairSync } from "node:crypto";
 import { once } from "node:events";
 
 const smokePort = process.env.SMOKE_PORT ?? "8977";
@@ -61,6 +62,14 @@ async function callTool(path, name, args = {}) {
   return callMcp(path, "tools/call", { name, arguments: args });
 }
 
+async function postUnsignedWebhook() {
+  return fetch(`${baseUrl}/kick/webhooks`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ event: "unsigned-smoke" }),
+  });
+}
+
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -69,19 +78,39 @@ function isToolError(result) {
   return Boolean(result?.result?.isError);
 }
 
+function webhookSignatureFixture() {
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const messageId = "smoke-message-id";
+  const timestamp = "2026-05-21T00:00:00Z";
+  const body = JSON.stringify({ event: "smoke" });
+  const payload = `${messageId}.${timestamp}.${body}`;
+  const signer = createSign("RSA-SHA256");
+  signer.update(payload);
+  signer.end();
+  return {
+    messageId,
+    timestamp,
+    body,
+    signature: signer.sign(privateKey, "base64"),
+    publicKeyPem: publicKey.export({ type: "spki", format: "pem" }),
+  };
+}
+
 async function main() {
   await ensureServer();
 
   const devTools = await callMcp("/mcp", "tools/list");
-  const chatgptTools = await callMcp("/chatgpt/mcp", "tools/list");
   const devNames = devTools.result.tools.map((tool) => tool.name);
-  const chatgptNames = chatgptTools.result.tools.map((tool) => tool.name);
 
-  assert(devNames.length === 23, `Expected 23 developer tools, got ${devNames.length}`);
-  assert(chatgptNames.length === 9, `Expected 9 ChatGPT tools, got ${chatgptNames.length}`);
+  assert(devNames.length === 27, `Expected 27 developer tools, got ${devNames.length}`);
   assert(devNames.includes("kick_delete_chat_message"), "Developer profile should include chat delete.");
-  assert(!chatgptNames.includes("kick_delete_chat_message"), "ChatGPT profile should not include chat delete.");
-  console.log("ok tool profiles");
+  assert(devNames.includes("kick_get_livestream_stats"), "Developer profile should include livestream stats.");
+  assert(devNames.includes("kick_introspect_token"), "Developer profile should include token introspection.");
+  console.log("ok tool profile");
+
+  const unsignedWebhook = await postUnsignedWebhook();
+  assert(unsignedWebhook.status === 401, `Expected unsigned webhook to be rejected with 401, got ${unsignedWebhook.status}`);
+  console.log("ok webhook signature enforcement");
 
   const live = await callTool("/mcp", "kick_get_livestreams", { limit: 1, sort: "viewer_count" });
   assert(!isToolError(live), live.result?.content?.[0]?.text ?? "kick_get_livestreams failed");
@@ -98,9 +127,36 @@ async function main() {
   assert(!isToolError(categories), categories.result?.content?.[0]?.text ?? "kick_get_categories failed");
   console.log("ok categories");
 
+  const legacyCategories = await callTool("/mcp", "kick_search_categories_legacy", { q: "Just Chatting", page: 1 });
+  assert(!isToolError(legacyCategories), legacyCategories.result?.content?.[0]?.text ?? "kick_search_categories_legacy failed");
+  console.log("ok legacy categories");
+
+  const categoryDetail = await callTool("/mcp", "kick_get_category_detail", { category_id: 15 });
+  assert(!isToolError(categoryDetail), categoryDetail.result?.content?.[0]?.text ?? "kick_get_category_detail failed");
+  console.log("ok category detail");
+
+  const stats = await callTool("/mcp", "kick_get_livestream_stats");
+  assert(!isToolError(stats), stats.result?.content?.[0]?.text ?? "kick_get_livestream_stats failed");
+  console.log("ok livestream stats");
+
+  const introspection = await callTool("/mcp", "kick_introspect_token", { token_source: "app" });
+  assert(!isToolError(introspection), introspection.result?.content?.[0]?.text ?? "kick_introspect_token failed");
+  assert(introspection.result.structuredContent.data.active === true, "Expected active app token introspection.");
+  console.log("ok token introspection");
+
   const publicKey = await callTool("/mcp", "kick_get_public_key");
   assert(!isToolError(publicKey), publicKey.result?.content?.[0]?.text ?? "kick_get_public_key failed");
   console.log("ok public key");
+
+  const webhookFixture = webhookSignatureFixture();
+  const validWebhook = await callTool("/mcp", "kick_verify_webhook_signature", webhookFixture);
+  assert(!isToolError(validWebhook), validWebhook.result?.content?.[0]?.text ?? "kick_verify_webhook_signature failed");
+  assert(validWebhook.result.structuredContent.verified === true, "Expected valid webhook signature.");
+  const badSignature = `${webhookFixture.signature.startsWith("A") ? "B" : "A"}${webhookFixture.signature.slice(1)}`;
+  const invalidWebhook = await callTool("/mcp", "kick_verify_webhook_signature", { ...webhookFixture, signature: badSignature });
+  assert(!isToolError(invalidWebhook), invalidWebhook.result?.content?.[0]?.text ?? "kick_verify_webhook_signature invalid fixture failed");
+  assert(invalidWebhook.result.structuredContent.verified === false, "Expected invalid webhook signature.");
+  console.log("ok webhook signature verification");
 
   const events = await callTool("/mcp", "kick_list_event_subscriptions");
   assert(!isToolError(events), events.result?.content?.[0]?.text ?? "kick_list_event_subscriptions failed");
@@ -142,7 +198,6 @@ async function main() {
     "kick_reject_reward_redemptions",
     "kick_create_event_subscriptions",
     "kick_delete_event_subscriptions",
-    "kick_verify_webhook_signature",
     "kick_ban_or_timeout_user",
     "kick_unban_user",
   ];

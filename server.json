@@ -15,10 +15,6 @@
     },
     "streamableHttp": {
       "path": "/mcp"
-    },
-    "chatgptApp": {
-      "path": "/chatgpt/mcp",
-      "displayName": "KickMCP for Creators"
     }
   },
   "configuration": {
@@ -31,14 +27,19 @@
       "KICK_REDIRECT_URI",
       "KICK_SCOPES",
       "KICK_USER_ACCESS_TOKEN",
-      "KICK_BOT_ACCESS_TOKEN"
+      "KICK_BOT_ACCESS_TOKEN",
+      "KICK_VERIFY_WEBHOOK_SIGNATURES"
     ]
   },
   "tools": [
     "kick_get_users",
+    "kick_introspect_token",
     "kick_get_channels",
     "kick_get_livestreams",
+    "kick_get_livestream_stats",
     "kick_get_categories",
+    "kick_search_categories_legacy",
+    "kick_get_category_detail",
     "kick_update_channel",
     "kick_send_chat_message",
     "kick_delete_chat_message",
@@ -58,16 +59,5 @@
     "kick_ban_or_timeout_user",
     "kick_unban_user",
     "kick_get_public_key"
-  ],
-  "chatgptAppTools": [
-    "kick_get_users",
-    "kick_get_channels",
-    "kick_get_livestreams",
-    "kick_get_categories",
-    "kick_update_channel",
-    "kick_send_chat_message",
-    "kick_get_channel_rewards",
-    "kick_get_reward_redemptions",
-    "kick_get_kicks_leaderboard"
   ]
 }

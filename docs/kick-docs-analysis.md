@@ -1,6 +1,6 @@
 # Kick Docs Analysis
 
-Sources reviewed:
+Reviewed sources:
 
 - https://docs.kick.com
 - https://github.com/KickEngineering/KickDevDocs
@@ -12,147 +12,88 @@ Sources reviewed:
 - https://docs.kick.com/apis/public-key
 - https://docs.kick.com/getting-started/generating-tokens-oauth2-flow
 - https://docs.kick.com/getting-started/scopes
+- https://api.kick.com/swagger/doc.yaml
+
+## Product Direction
+
+KickMCP should be published as an unofficial developer MCP server and local agent skill, not as an official Kick-branded app. The repo should help developers, streamers, and agent builders connect their own Kick OAuth app credentials to MCP-capable clients.
 
 ## Auth Model
 
-Kick has two useful token classes for this project:
+Kick has two useful token classes:
 
-- App access tokens from `client_credentials`, used for public/server-to-server reads and event subscription operations that allow app tokens.
-- User access tokens from authorization code + PKCE, used for user/broadcaster-scoped reads and actions.
+- App access tokens from `client_credentials`
+- User access tokens from authorization code + PKCE
 
-The OAuth host is `https://id.kick.com`, which is separate from the API host `https://api.kick.com`.
+OAuth lives at `https://id.kick.com`. API calls live at `https://api.kick.com`.
 
-## Tool Coverage Decision
+KickMCP now supports:
 
-KickMCP should expose the broad developer surface at `/mcp` because developers need full API control. The curated `/chatgpt/mcp` profile should remain smaller because broad consumer app experiences should not default-expose delete, moderation, webhook administration, public-key plumbing, or reward mutation tools.
+- app token caching
+- OAuth authorization-code callback
+- local `.kick-tokens.json` storage
+- stored user-token refresh when a refresh token is available
+- token introspection through the current `/oauth/token/introspect` endpoint
 
-## Channel Rewards
+## API Coverage
 
-Official endpoints:
+See [kick-api-coverage.md](kick-api-coverage.md) for the endpoint-by-endpoint map.
 
-- `GET /public/v1/channels/rewards`
-- `POST /public/v1/channels/rewards`
-- `PATCH /public/v1/channels/rewards/{id}`
-- `DELETE /public/v1/channels/rewards/{id}`
-- `GET /public/v1/channels/rewards/redemptions`
-- `POST /public/v1/channels/rewards/redemptions/accept`
-- `POST /public/v1/channels/rewards/redemptions/reject`
+Notable current coverage updates from this audit:
 
-Important implementation details:
+- Added `kick_get_livestream_stats` for `/public/v1/livestreams/stats`
+- Added `kick_introspect_token` for `/oauth/token/introspect`
+- Added deprecated-but-documented category compatibility tools for `/public/v1/categories` and `/public/v1/categories/{category_id}`
+- Removed the separate AI-app surface and kept one full `/mcp` endpoint
 
-- Rewards require user access tokens.
-- Read can use `channel:rewards:read` or `channel:rewards:write`.
-- Writes require `channel:rewards:write`.
-- Accept/reject redemptions take up to 25 unique IDs per request.
-- Only the app that created a reward can update/delete that reward.
+## Webhooks
 
-## Events And Webhooks
+Kick's official real-time model is event subscriptions delivered to webhooks.
 
-The Events API supports webhook subscriptions. Kick docs say app access tokens can subscribe to events for any channel when a broadcaster user ID is supplied.
+KickMCP implements:
 
-Configured webhook URL must be public. Localhost only works through a public tunnel such as ngrok or Cloudflare Tunnel.
+- `POST /kick/webhooks`
+- default signature enforcement
+- `kick_verify_webhook_signature`
+- `kick_get_public_key`
+- event subscription list/create/delete
 
-Webhook event types currently represented in schemas:
-
-- `chat.message.sent`
-- `channel.followed`
-- `channel.subscription.renewal`
-- `channel.subscription.gifts`
-- `channel.subscription.new`
-- `channel.reward.redemption.updated`
-- `livestream.status.updated`
-- `livestream.metadata.updated`
-- `moderation.banned`
-- `kicks.gifted`
-
-Webhook signature verification uses:
-
-- `Kick-Event-Message-Id`
-- `Kick-Event-Message-Timestamp`
-- raw request body
-- `Kick-Event-Signature`
-- Kick public key from `GET /public/v1/public-key`
-
-Kick may unsubscribe an app from events if the webhook continually fails for over a day, so handlers should return quickly.
-
-## Public Key
-
-`GET /public/v1/public-key` returns the public key used to verify webhook signatures. This belongs in the developer MCP profile. It should not be a prominent curated-app tool.
+Kick may unsubscribe apps whose webhook endpoint fails for an extended period, so production webhook handlers should verify, enqueue/store, return quickly, and process asynchronously.
 
 ## Drops
 
-Drops are primarily an organization/developer-dashboard workflow:
+Drops are organization-oriented. The Drops guide documents `GET /public/v1/drops/claims`, and KickMCP exposes it as `kick_get_drops_claims`.
 
-- Organization owners create/manage Drops campaigns.
-- Campaigns can attach up to 12 rewards.
-- Viewers earn rewards by watching participating streams.
-- Kick sends a synchronous claim webhook when a reward is claimed.
-- Claim webhooks should be idempotent by `claim_id`.
+This endpoint needs app credentials associated with the relevant Kick organization. Live testing with the Kickmunk app credentials returned an authorization/internal boundary error, which is expected for an app that is not tied to a Drops organization.
 
-The Drops guide documents:
+## Chat Logs
 
-- `GET /public/v1/drops/claims`
+Kick's docs include:
 
-This endpoint requires app access tokens from OAuth apps associated with the organization. It is implemented as `kick_get_drops_claims`, but smoke tests tolerate authorization errors when the configured app is not associated with a Kick organization.
+- `POST /public/v1/chat`
+- `DELETE /public/v1/chat/{message_id}`
+- `chat.message.sent` webhook events
 
-## Scope Notes
-
-Relevant scopes:
-
-- `user:read`
-- `channel:read`
-- `channel:write`
-- `channel:rewards:read`
-- `channel:rewards:write`
-- `chat:write`
-- `events:subscribe`
-- `moderation:ban`
-- `moderation:chat_message:manage`
-- `kicks:read`
-
-`streamkey:read` exists in the docs, but this repo does not expose a stream-key tool yet because the current implemented surface was focused on the API groups already mapped and tested.
+They do not include a public historical chat-log endpoint. Agents that need chat history should subscribe to `chat.message.sent` and store webhook payloads in their own database.
 
 ## Known Non-Goals
 
 Do not claim support for these unless Kick adds official docs/endpoints:
 
-- Polls
-- Predictions
-- Stream start/stop control
-- Unofficial websocket chat listening
+- polls
+- predictions
+- stream start/stop control
+- stream key retrieval
+- websocket chat listening
+- historical chat-log retrieval
 
-## Current Implementation Status
+## Verification
 
-Implemented:
+Use:
 
-- OAuth app-token flow
-- OAuth authorization-code + PKCE callback helper
-- users/channels/livestreams/categories
-- chat send/delete
-- channel rewards CRUD
-- reward redemptions read/accept/reject
-- event subscription list/create/delete
-- webhook receiver with signature verification
-- public key retrieval
-- KICKs leaderboard for authenticated broadcaster
-- Drops claims retrieval for organization-associated OAuth apps
+```bash
+npm run smoke
+npm run live:read
+```
 
-Validated by `npm run smoke` with app credentials:
-
-- tool profile sizes
-- livestream lookup
-- channel lookup
-- category lookup
-- public key retrieval
-- event subscription listing
-- clear errors for user-token-gated tools when no user token is present
-
-Not automatically executed in smoke tests:
-
-- chat sends
-- deletes
-- moderation actions
-- reward mutations
-- event subscription mutations
-
-Those tools mutate Kick state and require explicit human confirmation plus suitable test fixtures.
+Write/destructive tools are not executed automatically. They require a specific target and explicit human confirmation.

@@ -1,14 +1,16 @@
 # Implementation Plan
 
-## In Progress
-
 ## Completed
 
-- [x] Build Kickmunk Apps SDK MCP server and widget
-  - Notes: Includes channel lookup, livestream lookup, chat send/delete tools, local OAuth callback, and webhook test receiver.
+- [x] Rebuild KickMCP as an unofficial MCP-first server.
+- [x] Implement stdio and Streamable HTTP transports.
+- [x] Implement Kick app-token reads, user OAuth callback, stored token refresh, webhook receiver, and signature verification.
+- [x] Cover current Kick public API groups represented in the official docs/OpenAPI.
+- [x] Add smoke tests and live read-only example script.
+- [x] Remove separate AI-app positioning and keep one `/mcp` server surface.
 
 ## Backlog
 
-- [ ] Add full Kick OAuth authorization-code callback storage.
-- [ ] Add webhook subscription management and signature verification UI.
-- [ ] Add channel rewards and moderation tools.
+- [ ] Add persistent webhook event storage examples for chat analytics.
+- [ ] Add optional database-backed token storage for hosted deployments.
+- [ ] Publish npm package after final owner review.

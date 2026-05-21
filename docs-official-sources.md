@@ -8,10 +8,14 @@ This project is implemented against:
 
 Current official endpoint groups represented in tools:
 
+- `/oauth/token`
+- `/oauth/token/introspect`
 - `/public/v1/users`
 - `/public/v1/channels`
-- `/public/v2/categories`
 - `/public/v1/livestreams`
+- `/public/v1/livestreams/stats`
+- `/public/v2/categories`
+- `/public/v1/categories` and `/public/v1/categories/{category_id}` as deprecated compatibility tools
 - `/public/v1/chat`
 - `/public/v1/channels/rewards`
 - `/public/v1/channels/rewards/redemptions`
@@ -21,26 +25,14 @@ Current official endpoint groups represented in tools:
 - `/public/v1/moderation/bans`
 - `/public/v1/public-key`
 
-Deprecated category endpoints under `/public/v1/categories` are not used.
+## Product Positioning
 
-## Product Profiles
-
-The developer MCP profile at `/mcp` exposes the full official Kick API tool surface implemented by this repo.
-
-The curated AI app profile at `/chatgpt/mcp` intentionally exposes a smaller creator-facing set:
-
-- profile/channel/livestream/category reads
-- channel metadata update
-- explicit chat send
-- reward/redemption reads
-- KICKs leaderboard reads
-
-It intentionally excludes moderation, deletion, webhook administration, public-key plumbing, and reward mutation from the public app surface. Those tools are developer/admin tools, not broad consumer app defaults.
+KickMCP is an unofficial developer/streamer MCP server and local skill. It should be presented as a tool for users who bring their own Kick OAuth app credentials.
 
 ## Branding
 
-This repository should be presented as an unofficial Kick developer integration unless the owner has explicit permission to use official Kick branding in app directories or ChatGPT app submission.
+Do not present this as an official Kick product unless the owner has explicit brand permission. Use `KickMCP` or `Unofficial Kick MCP` naming in directories, docs, and package metadata.
 
-## Recommended Audience Split
+## Real-Time And Chat
 
-KickMCP is best published as a developer/streamer MCP server, not an official Kick ChatGPT app. The repo should help people add it themselves to MCP clients and use the curated profile when they want a safer app-like surface.
+Kick's official real-time model is event subscriptions delivered by webhooks. KickMCP does not implement an unofficial websocket client and does not claim historical chat-log retrieval.

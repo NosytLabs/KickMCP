@@ -9,6 +9,7 @@ import type {
   SendChatInput,
 } from "./types.js";
 import { readStoredKickTokens } from "./token-store.js";
+import { refreshStoredKickTokens } from "./oauth.js";
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
@@ -93,6 +94,58 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   return (payload?.data ?? payload) as T;
 }
 
+function storedTokenExpiresAt(tokens: { expires_at?: string; saved_at?: string; expires_in?: number | string }) {
+  if (tokens.expires_at) {
+    const expiresAt = Date.parse(tokens.expires_at);
+    if (Number.isFinite(expiresAt)) return expiresAt;
+  }
+
+  const savedAt = tokens.saved_at ? Date.parse(tokens.saved_at) : Number.NaN;
+  const expiresIn = Number(tokens.expires_in);
+  if (Number.isFinite(savedAt) && Number.isFinite(expiresIn)) {
+    return savedAt + expiresIn * 1000;
+  }
+
+  return undefined;
+}
+
+async function getStoredUserAccessToken() {
+  const tokens = readStoredKickTokens();
+  if (!tokens?.access_token) return undefined;
+
+  const expiresAt = storedTokenExpiresAt(tokens);
+  if (expiresAt && expiresAt <= Date.now() + 30_000) {
+    return (await refreshStoredKickTokens()).access_token;
+  }
+
+  return tokens.access_token;
+}
+
+async function getUserAccessToken(purpose: string) {
+  const token = config.kickUserAccessToken ?? (await getStoredUserAccessToken());
+  if (!token) {
+    throw new Error(`Missing KICK_USER_ACCESS_TOKEN for ${purpose}. Run /kick/oauth/start or set KICK_USER_ACCESS_TOKEN.`);
+  }
+  return token;
+}
+
+async function requestOauth<T>(path: string, token: string) {
+  const response = await fetch(new URL(path, config.kickOauthBaseUrl), {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${token}`,
+    },
+  });
+
+  const payload = (await response.json().catch(() => undefined)) as KickApiEnvelope<T> | undefined;
+  if (!response.ok) {
+    throw new KickApiError(payload?.message ?? payload?.error ?? "Kick OAuth request failed.", response.status, payload);
+  }
+
+  return (payload?.data ?? payload) as T;
+}
+
 export async function getChannels(input: { slugs?: string[]; broadcasterUserIds?: number[] }) {
   if (input.slugs?.length && input.broadcasterUserIds?.length) {
     throw new Error("Kick channel lookup accepts slugs or broadcaster user IDs, not both.");
@@ -132,7 +185,7 @@ export async function getUsers(input: { ids?: number[] } = {}) {
   const query = new URLSearchParams();
   for (const id of input.ids ?? []) query.append("id", String(id));
   return request<unknown[]>("/public/v1/users", {
-    token: config.kickUserAccessToken ?? readStoredKickTokens()?.access_token ?? (await getAppAccessToken()),
+    token: config.kickUserAccessToken ?? (await getStoredUserAccessToken()) ?? (await getAppAccessToken()),
     query,
   });
 }
@@ -150,13 +203,50 @@ export async function getCategories(input: { names?: string[]; tags?: string[]; 
   });
 }
 
+export async function getLegacyCategories(input: { q: string; page?: number }) {
+  const query = new URLSearchParams();
+  query.set("q", input.q);
+  if (input.page) query.set("page", String(input.page));
+  return request<unknown[]>("/public/v1/categories", {
+    token: await getAppAccessToken(),
+    query,
+  });
+}
+
+export async function getCategoryDetail(categoryId: number) {
+  return request<unknown>(`/public/v1/categories/${encodeURIComponent(String(categoryId))}`, {
+    token: await getAppAccessToken(),
+  });
+}
+
+export async function getLivestreamStats() {
+  return request<unknown>("/public/v1/livestreams/stats", {
+    token: await getAppAccessToken(),
+  });
+}
+
+export async function introspectKickToken(input: { token_source?: "app" | "user" | "bot" } = {}) {
+  const tokenSource = input.token_source ?? "app";
+  const token =
+    tokenSource === "app"
+      ? await getAppAccessToken()
+      : tokenSource === "bot"
+        ? config.kickBotAccessToken
+        : await getUserAccessToken("token introspection");
+
+  if (!token) {
+    throw new Error("Missing KICK_BOT_ACCESS_TOKEN for bot token introspection.");
+  }
+
+  return requestOauth<unknown>("/oauth/token/introspect", token);
+}
+
 export async function updateChannel(input: {
   stream_title?: string;
   category_id?: number;
   custom_tags?: string[];
 }) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for channel writes.");
+  const token = await getUserAccessToken("channel writes");
 
   return request<void>("/public/v1/channels", {
     method: "PATCH",
@@ -166,8 +256,7 @@ export async function updateChannel(input: {
 }
 
 export async function getChannelRewards() {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for channel rewards.");
+  const token = await getUserAccessToken("channel rewards");
   return request<unknown[]>("/public/v1/channels/rewards", { token });
 }
 
@@ -180,20 +269,17 @@ export async function createChannelReward(input: {
   is_user_input_required?: boolean;
   should_redemptions_skip_request_queue?: boolean;
 }) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for channel reward writes.");
+  const token = await getUserAccessToken("channel reward writes");
   return request<unknown>("/public/v1/channels/rewards", { method: "POST", token, body: input });
 }
 
 export async function updateChannelReward(id: string, input: Record<string, unknown>) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for channel reward writes.");
+  const token = await getUserAccessToken("channel reward writes");
   return request<unknown>(`/public/v1/channels/rewards/${encodeURIComponent(id)}`, { method: "PATCH", token, body: input });
 }
 
 export async function deleteChannelReward(id: string) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for channel reward writes.");
+  const token = await getUserAccessToken("channel reward writes");
   await request<void>(`/public/v1/channels/rewards/${encodeURIComponent(id)}`, { method: "DELETE", token });
 }
 
@@ -203,8 +289,7 @@ export async function getRewardRedemptions(input: {
   ids?: string[];
   cursor?: string;
 }) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for reward redemptions.");
+  const token = await getUserAccessToken("reward redemptions");
   const query = new URLSearchParams();
   if (input.reward_id) query.set("reward_id", input.reward_id);
   if (input.status) query.set("status", input.status);
@@ -214,8 +299,7 @@ export async function getRewardRedemptions(input: {
 }
 
 export async function resolveRewardRedemptions(action: "accept" | "reject", ids: string[]) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for reward redemption writes.");
+  const token = await getUserAccessToken("reward redemption writes");
   return request<unknown>(`/public/v1/channels/rewards/redemptions/${action}`, {
     method: "POST",
     token,
@@ -271,10 +355,7 @@ export async function getDropsClaims(input: {
 }
 
 export async function getKicksLeaderboard(input: { top?: number }) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) {
-    throw new Error("Missing KICK_USER_ACCESS_TOKEN for KICKs leaderboard. The official endpoint requires kicks:read for the authenticated broadcaster.");
-  }
+  const token = await getUserAccessToken("KICKs leaderboard. The official endpoint requires kicks:read for the authenticated broadcaster");
 
   const query = new URLSearchParams();
   if (input.top) query.set("top", String(input.top));
@@ -287,14 +368,12 @@ export async function moderateBan(input: {
   duration?: number;
   reason?: string;
 }) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for moderation.");
+  const token = await getUserAccessToken("moderation");
   return request<unknown>("/public/v1/moderation/bans", { method: "POST", token, body: input });
 }
 
 export async function removeModerationBan(input: { broadcaster_user_id: number; user_id: number }) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) throw new Error("Missing KICK_USER_ACCESS_TOKEN for moderation.");
+  const token = await getUserAccessToken("moderation");
   return request<unknown>("/public/v1/moderation/bans", { method: "DELETE", token, body: input });
 }
 
@@ -331,13 +410,12 @@ export async function verifyWebhookSignature(input: {
 }
 
 export async function sendChatMessage(input: SendChatInput) {
-  const storedToken = readStoredKickTokens()?.access_token;
   const token =
     input.type === "bot"
-      ? config.kickBotAccessToken ?? config.kickUserAccessToken ?? storedToken
-      : config.kickUserAccessToken ?? storedToken;
+      ? config.kickBotAccessToken ?? config.kickUserAccessToken ?? (await getStoredUserAccessToken())
+      : config.kickUserAccessToken ?? (await getStoredUserAccessToken());
   if (!token) {
-    throw new Error(`Missing ${input.type === "bot" ? "KICK_BOT_ACCESS_TOKEN or " : ""}KICK_USER_ACCESS_TOKEN for chat writes.`);
+    throw new Error(`Missing ${input.type === "bot" ? "KICK_BOT_ACCESS_TOKEN or " : ""}KICK_USER_ACCESS_TOKEN for chat writes. Run /kick/oauth/start or set a token.`);
   }
 
   return request<KickChatResponse>("/public/v1/chat", {
@@ -348,10 +426,7 @@ export async function sendChatMessage(input: SendChatInput) {
 }
 
 export async function deleteChatMessage(messageId: string) {
-  const token = config.kickUserAccessToken ?? readStoredKickTokens()?.access_token;
-  if (!token) {
-    throw new Error("Missing KICK_USER_ACCESS_TOKEN for chat moderation.");
-  }
+  const token = await getUserAccessToken("chat moderation");
 
   await request<void>(`/public/v1/chat/${encodeURIComponent(messageId)}`, {
     method: "DELETE",

@@ -42,7 +42,7 @@ app.get("/kick/oauth/callback", async (req, res, next) => {
       <main style="font-family: system-ui; line-height: 1.4; max-width: 680px; margin: 48px auto;">
         <h1>KICK connected</h1>
         <p>Kick user token saved locally for scopes: ${tokens.scope ?? "unknown"}.</p>
-        <p>You can close this tab and return to ChatGPT or your MCP client.</p>
+        <p>You can close this tab and return to your MCP client.</p>
       </main>
     `);
   } catch (error) {
@@ -58,6 +58,17 @@ app.post("/kick/webhooks", async (req, res, next) => {
     const rawBody = (req as express.Request & { rawBody?: string }).rawBody ?? JSON.stringify(req.body);
     let verified: boolean | undefined;
 
+    const hasAnySignatureHeader = Boolean(messageId || timestamp || signature);
+    if (config.verifyWebhookSignatures && !hasAnySignatureHeader) {
+      res.status(401).json({ ok: false, message: "Missing Kick webhook signature headers." });
+      return;
+    }
+
+    if (hasAnySignatureHeader && (!messageId || !timestamp || !signature)) {
+      res.status(400).json({ ok: false, message: "Incomplete Kick webhook signature headers." });
+      return;
+    }
+
     if (messageId && timestamp && signature) {
       verified = (await verifyWebhookSignature({ messageId, timestamp, signature, body: rawBody })).verified;
       if (!verified) {
@@ -66,22 +77,22 @@ app.post("/kick/webhooks", async (req, res, next) => {
       }
     }
 
-  console.log("Kick webhook received", {
-    id: req.header("Kick-Event-Message-Id"),
-    type: req.header("Kick-Event-Type"),
-    version: req.header("Kick-Event-Version"),
-    timestamp: req.header("Kick-Event-Message-Timestamp"),
-    verified,
-    body: req.body,
-  });
-  res.status(204).send();
+    console.log("Kick webhook received", {
+      id: req.header("Kick-Event-Message-Id"),
+      type: req.header("Kick-Event-Type"),
+      version: req.header("Kick-Event-Version"),
+      timestamp: req.header("Kick-Event-Message-Timestamp"),
+      verified,
+      body: req.body,
+    });
+    res.status(204).send();
   } catch (error) {
     next(error);
   }
 });
 
-async function handleMcpRequest(req: express.Request, res: express.Response, profile: "developer" | "chatgpt") {
-  const server = createMcpServer({ profile });
+async function handleMcpRequest(req: express.Request, res: express.Response) {
+  const server = createMcpServer();
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
 
   res.on("close", () => {
@@ -94,11 +105,7 @@ async function handleMcpRequest(req: express.Request, res: express.Response, pro
 }
 
 app.all("/mcp", async (req, res) => {
-  await handleMcpRequest(req, res, "developer");
-});
-
-app.all("/chatgpt/mcp", async (req, res) => {
-  await handleMcpRequest(req, res, "chatgpt");
+  await handleMcpRequest(req, res);
 });
 
 const httpServer = createServer(app);

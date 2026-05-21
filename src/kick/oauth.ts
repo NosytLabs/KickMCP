@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { config } from "../config.js";
-import { writeStoredKickTokens } from "./token-store.js";
+import { readStoredKickTokens, writeStoredKickTokens } from "./token-store.js";
 import type { StoredKickTokens } from "./token-store.js";
 
 type PkceSession = {
@@ -79,3 +79,34 @@ export async function exchangeKickAuthorizationCode(code: string, state: string)
   return writeStoredKickTokens(payload);
 }
 
+export async function refreshStoredKickTokens() {
+  const stored = readStoredKickTokens();
+  if (!stored?.refresh_token) {
+    throw new Error("Stored Kick user token is expired and no refresh token is available. Start /kick/oauth/start again.");
+  }
+
+  if (!config.kickClientId || !config.kickClientSecret) {
+    throw new Error("KICK_CLIENT_ID and KICK_CLIENT_SECRET are required to refresh Kick OAuth tokens.");
+  }
+
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    client_id: config.kickClientId,
+    client_secret: config.kickClientSecret,
+    redirect_uri: config.kickRedirectUri,
+    refresh_token: stored.refresh_token,
+  });
+
+  const response = await fetch(`${config.kickOauthBaseUrl}/oauth/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
+
+  const payload = (await response.json().catch(() => undefined)) as Omit<StoredKickTokens, "saved_at"> | undefined;
+  if (!response.ok || !payload?.access_token) {
+    throw new Error(`Kick OAuth refresh failed with status ${response.status}. Start /kick/oauth/start again.`);
+  }
+
+  return writeStoredKickTokens(payload);
+}
