@@ -1,0 +1,9 @@
+node_modules/
+dist/
+web-dist/
+.env
+.env.*
+!.env.example
+.kick-docs/
+kick-openapi.yaml
+.kick-tokens.json

@@ -1,0 +1,57 @@
+{
+  "name": "kick",
+  "displayName": "KICK",
+  "description": "MCP server and ChatGPT App backend for the official Kick.com public API.",
+  "homepage": "https://github.com/NosytLabs/KickMCP",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NosytLabs/KickMCP"
+  },
+  "license": "MIT",
+  "categories": ["social", "streaming", "developer-tools"],
+  "transport": {
+    "stdio": {
+      "command": "kick-mcp"
+    },
+    "streamableHttp": {
+      "path": "/mcp"
+    }
+  },
+  "configuration": {
+    "required": ["KICK_CLIENT_ID", "KICK_CLIENT_SECRET"],
+    "optional": [
+      "PORT",
+      "PUBLIC_BASE_URL",
+      "KICK_API_BASE_URL",
+      "KICK_OAUTH_BASE_URL",
+      "KICK_REDIRECT_URI",
+      "KICK_SCOPES",
+      "KICK_USER_ACCESS_TOKEN",
+      "KICK_BOT_ACCESS_TOKEN"
+    ]
+  },
+  "tools": [
+    "kick_get_users",
+    "kick_get_channels",
+    "kick_get_livestreams",
+    "kick_get_categories",
+    "kick_update_channel",
+    "kick_send_chat_message",
+    "kick_delete_chat_message",
+    "kick_get_channel_rewards",
+    "kick_create_channel_reward",
+    "kick_update_channel_reward",
+    "kick_delete_channel_reward",
+    "kick_get_reward_redemptions",
+    "kick_accept_reward_redemptions",
+    "kick_reject_reward_redemptions",
+    "kick_list_event_subscriptions",
+    "kick_create_event_subscriptions",
+    "kick_delete_event_subscriptions",
+    "kick_get_kicks_leaderboard",
+    "kick_ban_or_timeout_user",
+    "kick_unban_user",
+    "kick_get_public_key"
+  ]
+}
+
