@@ -24,6 +24,8 @@ npm run start
 npm run start:stdio
 ```
 
+Read `docs/setup.md` before changing scopes, redirect URLs, webhook behavior, or ChatGPT integration guidance.
+
 Use `npm run smoke` before claiming the server works. It verifies:
 
 - build output

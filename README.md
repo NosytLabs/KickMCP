@@ -228,6 +228,8 @@ Drops tools only work for OAuth apps associated with the relevant Kick organizat
 
 See `.env.example`.
 
+For a full setup walkthrough, including scopes, redirect URLs, webhooks, and ChatGPT options, see [docs/setup.md](docs/setup.md).
+
 Core variables:
 
 - `KICK_CLIENT_ID`
@@ -353,6 +355,8 @@ Not included unless Kick adds official endpoints:
 - Predictions
 - Stream start/stop control
 - Unofficial websocket chat listening
+
+Kick's official real-time story is event subscriptions delivered by webhooks. KickMCP does not implement an unofficial websocket client.
 
 ## Development
 
