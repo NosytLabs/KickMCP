@@ -4,6 +4,7 @@ import { once } from "node:events";
 
 const smokePort = process.env.SMOKE_PORT ?? "8977";
 const baseUrl = process.env.SMOKE_BASE_URL ?? `http://localhost:${smokePort}`;
+const smokeMcpAuthToken = process.env.SMOKE_MCP_AUTH_TOKEN ?? (process.env.SMOKE_BASE_URL ? undefined : "smoke-mcp-token");
 let server;
 
 async function waitForHealth() {
@@ -30,7 +31,12 @@ async function ensureServer() {
 
   server = spawn(process.execPath, ["dist/server.js"], {
     cwd: process.cwd(),
-    env: { ...process.env, PORT: smokePort, PUBLIC_BASE_URL: baseUrl },
+    env: {
+      ...process.env,
+      PORT: smokePort,
+      PUBLIC_BASE_URL: baseUrl,
+      ...(smokeMcpAuthToken ? { MCP_AUTH_TOKEN: smokeMcpAuthToken, MCP_REQUIRE_AUTH: "true" } : {}),
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout.on("data", (chunk) => process.stdout.write(chunk));
@@ -49,6 +55,7 @@ async function callMcp(path, method, params = {}) {
     headers: {
       "content-type": "application/json",
       accept: "application/json, text/event-stream",
+      ...(smokeMcpAuthToken ? { authorization: `Bearer ${smokeMcpAuthToken}` } : {}),
     },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
   });
@@ -60,6 +67,17 @@ async function callMcp(path, method, params = {}) {
 
 async function callTool(path, name, args = {}) {
   return callMcp(path, "tools/call", { name, arguments: args });
+}
+
+async function postMcpWithoutAuth() {
+  return fetch(`${baseUrl}/mcp`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+  });
 }
 
 async function postUnsignedWebhook() {
@@ -99,13 +117,50 @@ function webhookSignatureFixture() {
 async function main() {
   await ensureServer();
 
+  if (smokeMcpAuthToken && !process.env.SMOKE_BASE_URL) {
+    const unauthenticated = await postMcpWithoutAuth();
+    assert(unauthenticated.status === 401, `Expected unauthenticated MCP request to be rejected with 401, got ${unauthenticated.status}`);
+    console.log("ok mcp auth enforcement");
+  }
+
   const devTools = await callMcp("/mcp", "tools/list");
   const devNames = devTools.result.tools.map((tool) => tool.name);
 
-  assert(devNames.length === 27, `Expected 27 developer tools, got ${devNames.length}`);
-  assert(devNames.includes("kick_delete_chat_message"), "Developer profile should include chat delete.");
-  assert(devNames.includes("kick_get_livestream_stats"), "Developer profile should include livestream stats.");
-  assert(devNames.includes("kick_introspect_token"), "Developer profile should include token introspection.");
+  const requiredTools = [
+    "kick_get_users",
+    "kick_introspect_token",
+    "kick_get_channels",
+    "kick_get_livestreams",
+    "kick_get_livestream_stats",
+    "kick_get_categories",
+    "kick_search_categories_legacy",
+    "kick_get_category_detail",
+    "kick_update_channel",
+    "kick_send_chat_message",
+    "kick_delete_chat_message",
+    "kick_get_channel_rewards",
+    "kick_create_channel_reward",
+    "kick_update_channel_reward",
+    "kick_delete_channel_reward",
+    "kick_get_reward_redemptions",
+    "kick_accept_reward_redemptions",
+    "kick_reject_reward_redemptions",
+    "kick_list_event_subscriptions",
+    "kick_get_drops_claims",
+    "kick_verify_webhook_signature",
+    "kick_create_event_subscriptions",
+    "kick_delete_event_subscriptions",
+    "kick_get_kicks_leaderboard",
+    "kick_ban_or_timeout_user",
+    "kick_unban_user",
+    "kick_get_public_key",
+  ];
+
+  for (const name of requiredTools) {
+    assert(devNames.includes(name), `Missing expected tool: ${name}`);
+  }
+  const removedConceptPattern = new RegExp(`chat${"gpt"}|open${"ai"}|wid${"get"}`, "i");
+  assert(devNames.every((name) => !removedConceptPattern.test(name)), "Tool names should not contain removed app/UI concepts.");
   console.log("ok tool profile");
 
   const unsignedWebhook = await postUnsignedWebhook();

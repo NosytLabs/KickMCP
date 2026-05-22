@@ -107,6 +107,7 @@ KICK_CLIENT_SECRET=...
 KICK_REDIRECT_URI=http://localhost:8787/kick/oauth/callback
 KICK_SCOPES=user:read channel:read channel:write channel:rewards:read channel:rewards:write chat:write events:subscribe moderation:ban moderation:chat_message:manage kicks:read
 KICK_VERIFY_WEBHOOK_SIGNATURES=true
+KICK_REQUEST_TIMEOUT_MS=15000
 ```
 
 Run:
@@ -185,6 +186,19 @@ KICK_VERIFY_WEBHOOK_SIGNATURES=false
 http://localhost:8787/mcp
 ```
 
+For hosted or tunneled MCP access, protect `/mcp` with a bearer token:
+
+```text
+MCP_REQUIRE_AUTH=true
+MCP_AUTH_TOKEN=generate-a-long-random-token
+```
+
+Clients should send:
+
+```text
+Authorization: Bearer generate-a-long-random-token
+```
+
 ## 6. Live Verification
 
 Run:
@@ -192,6 +206,7 @@ Run:
 ```bash
 npm run smoke
 npm run live:read
+npm run pack:check
 ```
 
 `npm run smoke` is pass/fail. It checks the MCP tool list and safe live reads. It does not execute write tools.

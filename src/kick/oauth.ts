@@ -22,6 +22,10 @@ function createCodeChallenge(verifier: string) {
   return base64Url(createHash("sha256").update(verifier).digest());
 }
 
+function requestSignal() {
+  return AbortSignal.timeout(config.kickRequestTimeoutMs);
+}
+
 export function createKickAuthorizationUrl() {
   if (!config.kickClientId) {
     throw new Error("KICK_CLIENT_ID is required to start Kick OAuth.");
@@ -69,6 +73,7 @@ export async function exchangeKickAuthorizationCode(code: string, state: string)
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
+    signal: requestSignal(),
   });
 
   const payload = (await response.json().catch(() => undefined)) as Omit<StoredKickTokens, "saved_at"> | undefined;
@@ -101,6 +106,7 @@ export async function refreshStoredKickTokens() {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
+    signal: requestSignal(),
   });
 
   const payload = (await response.json().catch(() => undefined)) as Omit<StoredKickTokens, "saved_at"> | undefined;

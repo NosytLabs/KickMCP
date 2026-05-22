@@ -19,6 +19,7 @@ Official API references:
 npm install
 npm run typecheck
 npm run build
+npm run pack:check
 npm run smoke
 npm run live:read
 npm run start
@@ -37,6 +38,8 @@ Use `npm run smoke` before claiming the server works. It verifies:
 
 Use `npm run live:read` when you need printable read-only examples from the live Kick API. It never prints secrets or token values.
 
+Use `npm run pack:check` before publishing. It verifies the npm package does not include removed UI artifacts.
+
 ## MCP Endpoint
 
 HTTP:
@@ -52,6 +55,8 @@ kick-mcp
 ```
 
 This is the full developer/admin MCP surface for local tools, coding agents, OpenClaw/Hermes-style automations, and advanced MCP clients.
+
+For hosted HTTP use, set `MCP_REQUIRE_AUTH=true` and `MCP_AUTH_TOKEN` so `/mcp` requires a bearer token.
 
 ## Recommended Workflows
 

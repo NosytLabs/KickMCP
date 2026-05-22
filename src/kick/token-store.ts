@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 export type StoredKickTokens = {
@@ -15,7 +15,11 @@ const tokenPath = path.resolve(process.cwd(), ".kick-tokens.json");
 
 export function readStoredKickTokens() {
   if (!existsSync(tokenPath)) return undefined;
-  return JSON.parse(readFileSync(tokenPath, "utf8")) as StoredKickTokens;
+  try {
+    return JSON.parse(readFileSync(tokenPath, "utf8")) as StoredKickTokens;
+  } catch (error) {
+    throw new Error(`Unable to read .kick-tokens.json. Delete it and restart OAuth if it is corrupted. Cause: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export function writeStoredKickTokens(tokens: Omit<StoredKickTokens, "saved_at">) {
@@ -26,6 +30,8 @@ export function writeStoredKickTokens(tokens: Omit<StoredKickTokens, "saved_at">
     saved_at: savedAt.toISOString(),
     expires_at: Number.isFinite(expiresIn) ? new Date(savedAt.getTime() + expiresIn * 1000).toISOString() : tokens.expires_at,
   };
-  writeFileSync(tokenPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  const temporaryPath = `${tokenPath}.tmp`;
+  writeFileSync(temporaryPath, `${JSON.stringify(payload, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  renameSync(temporaryPath, tokenPath);
   return payload;
 }

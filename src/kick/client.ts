@@ -19,6 +19,8 @@ type RequestOptions = {
 };
 
 let cachedAppToken: { token: string; expiresAt: number } | undefined;
+let pendingAppToken: Promise<string> | undefined;
+let cachedPublicKey: { publicKeyPem: string; expiresAt: number } | undefined;
 
 export class KickApiError extends Error {
   constructor(
@@ -31,11 +33,11 @@ export class KickApiError extends Error {
   }
 }
 
-export async function getAppAccessToken() {
-  if (cachedAppToken && cachedAppToken.expiresAt > Date.now() + 30_000) {
-    return cachedAppToken.token;
-  }
+function requestSignal() {
+  return AbortSignal.timeout(config.kickRequestTimeoutMs);
+}
 
+async function getFreshAppAccessToken() {
   if (!config.kickClientId || !config.kickClientSecret) {
     throw new Error("KICK_CLIENT_ID and KICK_CLIENT_SECRET are required for app access.");
   }
@@ -50,6 +52,7 @@ export async function getAppAccessToken() {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
+    signal: requestSignal(),
   });
 
   const payload = (await response.json().catch(() => undefined)) as KickTokenResponse | undefined;
@@ -66,6 +69,17 @@ export async function getAppAccessToken() {
   return cachedAppToken.token;
 }
 
+export async function getAppAccessToken() {
+  if (cachedAppToken && cachedAppToken.expiresAt > Date.now() + 30_000) {
+    return cachedAppToken.token;
+  }
+
+  pendingAppToken ??= getFreshAppAccessToken().finally(() => {
+    pendingAppToken = undefined;
+  });
+  return pendingAppToken;
+}
+
 async function request<T>(path: string, options: RequestOptions = {}) {
   const url = new URL(path, config.kickApiBaseUrl);
   if (options.query) {
@@ -80,6 +94,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
       ...(options.body ? { "content-type": "application/json" } : {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
+    signal: requestSignal(),
   });
 
   if (response.status === 204) {
@@ -136,6 +151,7 @@ async function requestOauth<T>(path: string, token: string) {
       accept: "application/json",
       authorization: `Bearer ${token}`,
     },
+    signal: requestSignal(),
   });
 
   const payload = (await response.json().catch(() => undefined)) as KickApiEnvelope<T> | undefined;
@@ -381,6 +397,28 @@ export async function getPublicKey() {
   return request<unknown>("/public/v1/public-key");
 }
 
+async function getCachedPublicKeyPem() {
+  if (cachedPublicKey && cachedPublicKey.expiresAt > Date.now()) {
+    return cachedPublicKey.publicKeyPem;
+  }
+
+  const keyResponse = await getPublicKey();
+  const publicKeyPem =
+    typeof keyResponse === "object" && keyResponse && "public_key" in keyResponse
+      ? String((keyResponse as { public_key: unknown }).public_key)
+      : undefined;
+
+  if (!publicKeyPem) {
+    throw new Error("Unable to resolve Kick public key for webhook signature verification.");
+  }
+
+  cachedPublicKey = {
+    publicKeyPem,
+    expiresAt: Date.now() + 60 * 60 * 1000,
+  };
+  return publicKeyPem;
+}
+
 export async function verifyWebhookSignature(input: {
   messageId: string;
   timestamp: string;
@@ -388,16 +426,7 @@ export async function verifyWebhookSignature(input: {
   signature: string;
   publicKeyPem?: string;
 }) {
-  const keyResponse = input.publicKeyPem ? undefined : await getPublicKey();
-  const publicKeyPem =
-    input.publicKeyPem ??
-    (typeof keyResponse === "object" && keyResponse && "public_key" in keyResponse
-      ? String((keyResponse as { public_key: unknown }).public_key)
-      : undefined);
-
-  if (!publicKeyPem) {
-    throw new Error("Unable to resolve Kick public key for webhook signature verification.");
-  }
+  const publicKeyPem = input.publicKeyPem ?? (await getCachedPublicKeyPem());
 
   const payload = `${input.messageId}.${input.timestamp}.${input.body}`;
   const verifier = createVerify("RSA-SHA256");

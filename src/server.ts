@@ -16,6 +16,26 @@ app.use(express.json({
   },
 }));
 
+function authorizeMcpRequest(req: express.Request, res: express.Response) {
+  if (!config.requireMcpAuth) return true;
+
+  if (!config.mcpAuthToken) {
+    res.status(500).json({ ok: false, message: "MCP auth is required, but MCP_AUTH_TOKEN is not configured." });
+    return false;
+  }
+
+  const authorization = req.header("authorization");
+  const bearerToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const headerToken = req.header("x-mcp-auth-token");
+
+  if (bearerToken === config.mcpAuthToken || headerToken === config.mcpAuthToken) {
+    return true;
+  }
+
+  res.status(401).json({ ok: false, message: "Unauthorized MCP request." });
+  return false;
+}
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, name: "kick", kickUserTokenStored: Boolean(readStoredKickTokens()?.access_token) });
 });
@@ -83,7 +103,7 @@ app.post("/kick/webhooks", async (req, res, next) => {
       version: req.header("Kick-Event-Version"),
       timestamp: req.header("Kick-Event-Message-Timestamp"),
       verified,
-      body: req.body,
+      body_keys: req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
     });
     res.status(204).send();
   } catch (error) {
@@ -105,7 +125,14 @@ async function handleMcpRequest(req: express.Request, res: express.Response) {
 }
 
 app.all("/mcp", async (req, res) => {
+  if (!authorizeMcpRequest(req, res)) return;
   await handleMcpRequest(req, res);
+});
+
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const message = error instanceof Error ? error.message : "Unexpected server error.";
+  console.error("KickMCP request failed", { message });
+  res.status(500).json({ ok: false, message });
 });
 
 const httpServer = createServer(app);

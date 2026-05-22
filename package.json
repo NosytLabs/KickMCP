@@ -24,10 +24,13 @@
     ".env.example"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "start:stdio": "node dist/stdio.js",
+    "prepack": "npm run build",
+    "pack:check": "npm run build && node scripts/check-pack.mjs",
     "live:read": "npm run build && node scripts/live-read-examples.mjs",
     "smoke": "npm run build && node scripts/smoke-test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"

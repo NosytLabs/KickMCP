@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,4 +20,4 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
-
+      - run: npm run pack:check

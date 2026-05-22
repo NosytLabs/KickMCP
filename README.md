@@ -69,6 +69,7 @@ KICK_CLIENT_ID=...
 KICK_CLIENT_SECRET=...
 KICK_REDIRECT_URI=http://localhost:8787/kick/oauth/callback
 KICK_SCOPES=user:read channel:read channel:write channel:rewards:read channel:rewards:write chat:write events:subscribe moderation:ban moderation:chat_message:manage kicks:read
+KICK_REQUEST_TIMEOUT_MS=15000
 ```
 
 Run the HTTP server:
@@ -107,6 +108,19 @@ HTTP:
 
 ```text
 http://localhost:8787/mcp
+```
+
+For any non-local HTTP deployment, require a bearer token:
+
+```text
+MCP_REQUIRE_AUTH=true
+MCP_AUTH_TOKEN=generate-a-long-random-token
+```
+
+Clients should send:
+
+```text
+Authorization: Bearer generate-a-long-random-token
 ```
 
 Health check:
@@ -234,6 +248,7 @@ Last verified with Kickmunk app credentials on 2026-05-21:
 npm install
 npm run typecheck
 npm run build
+npm run pack:check
 npm run smoke
 npm run live:read
 ```

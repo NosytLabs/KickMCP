@@ -5,7 +5,9 @@
 - `npm install` - install dependencies.
 - `npm run dev` - run the TypeScript HTTP MCP server locally.
 - `npm run typecheck` - run TypeScript without emitting files.
-- `npm run build` - compile the server.
+- `npm run clean` - remove local build artifacts.
+- `npm run build` - clean and compile the server.
+- `npm run pack:check` - verify npm package contents.
 - `npm run smoke` - build, start an isolated server, and run safe live checks.
 - `npm run live:read` - print sanitized read-only live API examples.
 - `npm run start` - start the compiled HTTP MCP server.
@@ -17,8 +19,9 @@
 - Fill `KICK_CLIENT_ID` and `KICK_CLIENT_SECRET`.
 - Optional broadcaster/write tools use `KICK_USER_ACCESS_TOKEN`, `.kick-tokens.json`, or `KICK_BOT_ACCESS_TOKEN`.
 - HTTP MCP clients connect to `http://localhost:8787/mcp`.
+- Hosted HTTP MCP should set `MCP_REQUIRE_AUTH=true` and `MCP_AUTH_TOKEN`.
 
 ## Validation
 
-- Run `npm run typecheck`, `npm run smoke`, and `npm run live:read` before claiming the repo works.
+- Run `npm run typecheck`, `npm run pack:check`, `npm run smoke`, and `npm run live:read` before claiming the repo works.
 - Do not commit `.env`, `.kick-tokens.json`, Kick secrets, access tokens, or refresh tokens.

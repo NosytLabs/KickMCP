@@ -30,6 +30,8 @@ OAuth lives at `https://id.kick.com`. API calls live at `https://api.kick.com`.
 KickMCP now supports:
 
 - app token caching
+- single-flight app-token requests
+- network request timeouts
 - OAuth authorization-code callback
 - local `.kick-tokens.json` storage
 - stored user-token refresh when a refresh token is available
@@ -54,6 +56,7 @@ KickMCP implements:
 
 - `POST /kick/webhooks`
 - default signature enforcement
+- one-hour public-key cache for signature verification
 - `kick_verify_webhook_signature`
 - `kick_get_public_key`
 - event subscription list/create/delete
