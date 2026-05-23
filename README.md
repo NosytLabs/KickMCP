@@ -70,6 +70,7 @@ KICK_CLIENT_SECRET=...
 KICK_REDIRECT_URI=http://localhost:8787/kick/oauth/callback
 KICK_SCOPES=user:read channel:read channel:write channel:rewards:read channel:rewards:write chat:write events:subscribe moderation:ban moderation:chat_message:manage kicks:read
 KICK_REQUEST_TIMEOUT_MS=15000
+KICK_WEBHOOK_TIMESTAMP_TOLERANCE_MS=300000
 ```
 
 Run the HTTP server:
@@ -156,6 +157,8 @@ Webhook signatures are verified by default. Set this only for local debugging wi
 ```text
 KICK_VERIFY_WEBHOOK_SIGNATURES=false
 ```
+
+Signed webhooks must be inside the configured timestamp tolerance and message IDs are deduplicated in memory to prevent simple replay. The default tolerance is five minutes.
 
 ## Useful Scopes
 

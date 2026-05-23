@@ -9,6 +9,15 @@ type PkceSession = {
 };
 
 const sessions = new Map<string, PkceSession>();
+const sessionTtlMs = 10 * 60 * 1000;
+
+function pruneExpiredSessions(now = Date.now()) {
+  for (const [state, session] of sessions) {
+    if (now - session.createdAt > sessionTtlMs) {
+      sessions.delete(state);
+    }
+  }
+}
 
 function base64Url(buffer: Buffer) {
   return buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
@@ -31,6 +40,7 @@ export function createKickAuthorizationUrl() {
     throw new Error("KICK_CLIENT_ID is required to start Kick OAuth.");
   }
 
+  pruneExpiredSessions();
   const state = randomBytes(16).toString("hex");
   const codeVerifier = createCodeVerifier();
   const codeChallenge = createCodeChallenge(codeVerifier);
@@ -52,7 +62,7 @@ export async function exchangeKickAuthorizationCode(code: string, state: string)
   const session = sessions.get(state);
   sessions.delete(state);
 
-  if (!session || Date.now() - session.createdAt > 10 * 60 * 1000) {
+  if (!session || Date.now() - session.createdAt > sessionTtlMs) {
     throw new Error("Kick OAuth state is invalid or expired. Start the OAuth flow again.");
   }
 

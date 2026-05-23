@@ -108,6 +108,7 @@ KICK_REDIRECT_URI=http://localhost:8787/kick/oauth/callback
 KICK_SCOPES=user:read channel:read channel:write channel:rewards:read channel:rewards:write chat:write events:subscribe moderation:ban moderation:chat_message:manage kicks:read
 KICK_VERIFY_WEBHOOK_SIGNATURES=true
 KICK_REQUEST_TIMEOUT_MS=15000
+KICK_WEBHOOK_TIMESTAMP_TOLERANCE_MS=300000
 ```
 
 Run:
@@ -161,6 +162,8 @@ KickMCP verifies webhook signatures by default. For local unsigned test payloads
 ```text
 KICK_VERIFY_WEBHOOK_SIGNATURES=false
 ```
+
+Verified webhooks are also checked for timestamp freshness and duplicate message IDs. The default timestamp tolerance is five minutes.
 
 ## 5. MCP Client Setup
 

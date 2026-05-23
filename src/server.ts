@@ -9,12 +9,23 @@ import { readStoredKickTokens } from "./kick/token-store.js";
 import { verifyWebhookSignature } from "./kick/client.js";
 
 const app = express();
+const seenWebhookMessageIds = new Map<string, number>();
+
 app.use(express.json({
   limit: "1mb",
   verify: (req, _res, buf) => {
     (req as express.Request & { rawBody?: string }).rawBody = buf.toString("utf8");
   },
 }));
+
+function pruneWebhookReplayCache(now = Date.now()) {
+  const expiresBefore = now - config.kickWebhookTimestampToleranceMs;
+  for (const [messageId, seenAt] of seenWebhookMessageIds) {
+    if (seenAt < expiresBefore || seenWebhookMessageIds.size > 10_000) {
+      seenWebhookMessageIds.delete(messageId);
+    }
+  }
+}
 
 function authorizeMcpRequest(req: express.Request, res: express.Response) {
   if (!config.requireMcpAuth) return true;
@@ -90,11 +101,30 @@ app.post("/kick/webhooks", async (req, res, next) => {
     }
 
     if (messageId && timestamp && signature) {
-      verified = (await verifyWebhookSignature({ messageId, timestamp, signature, body: rawBody })).verified;
+      const sentAt = Date.parse(timestamp);
+      if (!Number.isFinite(sentAt)) {
+        res.status(400).json({ ok: false, message: "Invalid Kick webhook timestamp." });
+        return;
+      }
+
+      const now = Date.now();
+      if (Math.abs(now - sentAt) > config.kickWebhookTimestampToleranceMs) {
+        res.status(400).json({ ok: false, message: "Kick webhook timestamp is outside the allowed tolerance." });
+        return;
+      }
+
+      pruneWebhookReplayCache(now);
+      if (seenWebhookMessageIds.has(messageId)) {
+        res.status(409).json({ ok: false, message: "Duplicate Kick webhook message." });
+        return;
+      }
+
+      verified = (await verifyWebhookSignature({ messageId, timestamp, signature, body: rawBody, publicKeyPem: config.kickWebhookPublicKeyPem })).verified;
       if (!verified) {
         res.status(401).json({ ok: false, message: "Invalid Kick webhook signature." });
         return;
       }
+      seenWebhookMessageIds.set(messageId, now);
     }
 
     console.log("Kick webhook received", {
@@ -132,7 +162,7 @@ app.all("/mcp", async (req, res) => {
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const message = error instanceof Error ? error.message : "Unexpected server error.";
   console.error("KickMCP request failed", { message });
-  res.status(500).json({ ok: false, message });
+  res.status(500).json({ ok: false, message: process.env.NODE_ENV === "production" ? "Internal server error." : message });
 });
 
 const httpServer = createServer(app);

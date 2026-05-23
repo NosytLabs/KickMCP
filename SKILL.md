@@ -32,6 +32,7 @@ Use `npm run smoke` before claiming the server works. It verifies:
 
 - build output
 - `/mcp` tool list
+- unsigned webhook rejection plus signed webhook replay protection
 - app-token reads for livestreams, livestream stats, channels, categories, category detail, token introspection, public key, and event subscriptions
 - Drops claims when the configured app is associated with a Kick organization; otherwise the expected auth boundary is reported
 - user-token-gated tools return clear errors when no user token is configured

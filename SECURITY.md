@@ -6,7 +6,7 @@ Never commit Kick client secrets, access tokens, refresh tokens, `.env`, or `.ki
 
 For any hosted HTTP MCP deployment, set `MCP_REQUIRE_AUTH=true` and `MCP_AUTH_TOKEN` so `/mcp` is not exposed publicly with configured Kick credentials.
 
-Webhook handlers log event metadata only; do not log full webhook bodies in production because chat/user payloads can contain private or sensitive community data.
+Webhook handlers log event metadata only; do not log full webhook bodies in production because chat/user payloads can contain private or sensitive community data. Signed webhook requests are checked for timestamp freshness and duplicate message IDs to reduce replay risk.
 
 ## Action Tool Safety
 

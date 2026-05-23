@@ -37,6 +37,8 @@ export const config = {
   kickUserAccessToken: process.env.KICK_USER_ACCESS_TOKEN,
   kickBotAccessToken: process.env.KICK_BOT_ACCESS_TOKEN,
   verifyWebhookSignatures: process.env.KICK_VERIFY_WEBHOOK_SIGNATURES !== "false",
+  kickWebhookPublicKeyPem: optional("KICK_WEBHOOK_PUBLIC_KEY_PEM"),
+  kickWebhookTimestampToleranceMs: readNumber("KICK_WEBHOOK_TIMESTAMP_TOLERANCE_MS", 5 * 60 * 1000),
   mcpAuthToken: optional("MCP_AUTH_TOKEN"),
   requireMcpAuth: process.env.MCP_REQUIRE_AUTH === "true" || Boolean(optional("MCP_AUTH_TOKEN")),
 };

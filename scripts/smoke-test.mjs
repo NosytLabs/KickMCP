@@ -5,6 +5,7 @@ import { once } from "node:events";
 const smokePort = process.env.SMOKE_PORT ?? "8977";
 const baseUrl = process.env.SMOKE_BASE_URL ?? `http://localhost:${smokePort}`;
 const smokeMcpAuthToken = process.env.SMOKE_MCP_AUTH_TOKEN ?? (process.env.SMOKE_BASE_URL ? undefined : "smoke-mcp-token");
+const webhookKeyPair = generateKeyPairSync("rsa", { modulusLength: 2048 });
 let server;
 
 async function waitForHealth() {
@@ -35,6 +36,7 @@ async function ensureServer() {
       ...process.env,
       PORT: smokePort,
       PUBLIC_BASE_URL: baseUrl,
+      KICK_WEBHOOK_PUBLIC_KEY_PEM: webhookKeyPair.publicKey.export({ type: "spki", format: "pem" }),
       ...(smokeMcpAuthToken ? { MCP_AUTH_TOKEN: smokeMcpAuthToken, MCP_REQUIRE_AUTH: "true" } : {}),
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -97,9 +99,8 @@ function isToolError(result) {
 }
 
 function webhookSignatureFixture() {
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const messageId = "smoke-message-id";
-  const timestamp = "2026-05-21T00:00:00Z";
+  const timestamp = new Date().toISOString();
   const body = JSON.stringify({ event: "smoke" });
   const payload = `${messageId}.${timestamp}.${body}`;
   const signer = createSign("RSA-SHA256");
@@ -109,9 +110,24 @@ function webhookSignatureFixture() {
     messageId,
     timestamp,
     body,
-    signature: signer.sign(privateKey, "base64"),
-    publicKeyPem: publicKey.export({ type: "spki", format: "pem" }),
+    signature: signer.sign(webhookKeyPair.privateKey, "base64"),
+    publicKeyPem: webhookKeyPair.publicKey.export({ type: "spki", format: "pem" }),
   };
+}
+
+async function postSignedWebhook(fixture) {
+  return fetch(`${baseUrl}/kick/webhooks`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "Kick-Event-Message-Id": fixture.messageId,
+      "Kick-Event-Message-Timestamp": fixture.timestamp,
+      "Kick-Event-Signature": fixture.signature,
+      "Kick-Event-Type": "chat.message.sent",
+      "Kick-Event-Version": "1",
+    },
+    body: fixture.body,
+  });
 }
 
 async function main() {
@@ -167,6 +183,15 @@ async function main() {
   const unsignedWebhook = await postUnsignedWebhook();
   assert(unsignedWebhook.status === 401, `Expected unsigned webhook to be rejected with 401, got ${unsignedWebhook.status}`);
   console.log("ok webhook signature enforcement");
+
+  if (!process.env.SMOKE_BASE_URL) {
+    const signedWebhook = webhookSignatureFixture();
+    const signedResponse = await postSignedWebhook(signedWebhook);
+    assert(signedResponse.status === 204, `Expected signed webhook to be accepted with 204, got ${signedResponse.status}`);
+    const duplicateResponse = await postSignedWebhook(signedWebhook);
+    assert(duplicateResponse.status === 409, `Expected duplicate webhook to be rejected with 409, got ${duplicateResponse.status}`);
+    console.log("ok webhook replay protection");
+  }
 
   const live = await callTool("/mcp", "kick_get_livestreams", { limit: 1, sort: "viewer_count" });
   assert(!isToolError(live), live.result?.content?.[0]?.text ?? "kick_get_livestreams failed");
