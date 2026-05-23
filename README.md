@@ -18,7 +18,7 @@ KickMCP exposes Kick API capabilities as typed MCP tools for developer agents, s
 
 Implemented areas:
 
-- OAuth app tokens, user OAuth callback, and stored user-token refresh
+- OAuth app tokens, user OAuth callback, stored user-token refresh, and token revoke
 - Token introspection
 - Users
 - Channels
@@ -192,6 +192,7 @@ Read and discovery:
 
 Actions:
 
+- `kick_revoke_token`
 - `kick_update_channel`
 - `kick_send_chat_message`
 - `kick_delete_chat_message`
@@ -205,7 +206,7 @@ Actions:
 - `kick_ban_or_timeout_user`
 - `kick_unban_user`
 
-Action tools are annotated as non-read-only and destructive where appropriate. Agents should ask for explicit confirmation before sending chat, changing channel metadata, mutating rewards, deleting chat, changing event subscriptions, or performing moderation.
+Action tools are annotated as non-read-only and destructive where appropriate. Agents should ask for explicit confirmation before revoking tokens, sending chat, changing channel metadata, mutating rewards, deleting chat, changing event subscriptions, or performing moderation.
 
 ## Agent Use Cases
 

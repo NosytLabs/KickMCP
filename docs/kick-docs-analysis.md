@@ -36,6 +36,7 @@ KickMCP now supports:
 - local `.kick-tokens.json` storage
 - stored user-token refresh when a refresh token is available
 - token introspection through the current `/oauth/token/introspect` endpoint
+- token revocation through the current `/oauth/revoke` endpoint
 
 ## API Coverage
 
@@ -45,6 +46,7 @@ Notable current coverage updates from this audit:
 
 - Added `kick_get_livestream_stats` for `/public/v1/livestreams/stats`
 - Added `kick_introspect_token` for `/oauth/token/introspect`
+- Added `kick_revoke_token` for `/oauth/revoke`
 - Added deprecated-but-documented category compatibility tools for `/public/v1/categories` and `/public/v1/categories/{category_id}`
 - Removed the separate AI-app surface and kept one full `/mcp` endpoint
 

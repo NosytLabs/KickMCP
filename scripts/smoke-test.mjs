@@ -129,6 +129,7 @@ async function main() {
   const requiredTools = [
     "kick_get_users",
     "kick_introspect_token",
+    "kick_revoke_token",
     "kick_get_channels",
     "kick_get_livestreams",
     "kick_get_livestream_stats",
@@ -253,6 +254,7 @@ async function main() {
     "kick_reject_reward_redemptions",
     "kick_create_event_subscriptions",
     "kick_delete_event_subscriptions",
+    "kick_revoke_token",
     "kick_ban_or_timeout_user",
     "kick_unban_user",
   ];

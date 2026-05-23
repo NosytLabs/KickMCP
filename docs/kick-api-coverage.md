@@ -1,6 +1,6 @@
 # Kick API Coverage
 
-Sources checked on 2026-05-21:
+Sources checked on 2026-05-23:
 
 - `https://docs.kick.com`
 - `https://github.com/KickEngineering/KickDevDocs`
@@ -16,6 +16,7 @@ Local source snapshots:
 | Kick endpoint | Status | Tool or route | Token type |
 | --- | --- | --- | --- |
 | `POST /oauth/token` | Current | app token cache, OAuth callback, stored-token refresh | client credentials / user OAuth |
+| `POST /oauth/revoke` | Current | `kick_revoke_token` | configured app, user, bot, or stored refresh token |
 | `POST /oauth/token/introspect` | Current | `kick_introspect_token` | app, user, or bot token |
 | `GET /public/v1/users` | Current | `kick_get_users` | user token for reliable profile reads; app token may hit `401` for ID lookup |
 | `GET /public/v1/channels` | Current | `kick_get_channels` | app or user token |
@@ -42,6 +43,7 @@ Local source snapshots:
 | `POST /public/v1/moderation/bans` | Current | `kick_ban_or_timeout_user` | user token, `moderation:ban` |
 | `DELETE /public/v1/moderation/bans` | Current | `kick_unban_user` | user token, `moderation:ban` |
 | `GET /public/v1/drops/claims` | Current in Drops guide | `kick_get_drops_claims` | app token associated with the relevant Kick organization |
+| `POST /public/v1/token/introspect` | Deprecated but documented | covered by `kick_introspect_token` on current `/oauth/token/introspect` | app or user token |
 
 ## Webhooks And Events
 

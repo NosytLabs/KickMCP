@@ -37,6 +37,7 @@
   "tools": [
     "kick_get_users",
     "kick_introspect_token",
+    "kick_revoke_token",
     "kick_get_channels",
     "kick_get_livestreams",
     "kick_get_livestream_stats",

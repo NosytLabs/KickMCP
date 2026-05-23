@@ -81,6 +81,16 @@ export const introspectKickTokenInput = {
   token_source: z.enum(["app", "user", "bot"]).default("app").optional(),
 };
 
+export const revokeKickTokenInput = {
+  token_source: z.enum(["app", "user", "bot", "stored_user_refresh"]).default("user").optional(),
+  token_type_hint: z.enum(["access_token", "refresh_token"]).optional(),
+};
+
+export const revokeKickTokenOutput = {
+  revoked: z.boolean(),
+  token_source: z.string(),
+};
+
 export const updateKickChannelInput = {
   stream_title: z.string().min(1).max(120).optional(),
   category_id: z.number().int().positive().optional(),

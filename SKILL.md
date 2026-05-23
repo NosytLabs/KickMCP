@@ -65,6 +65,7 @@ For hosted HTTP use, set `MCP_REQUIRE_AUTH=true` and `MCP_AUTH_TOKEN` so `/mcp` 
 Use:
 
 - `kick_introspect_token`
+- `kick_revoke_token`
 - `kick_get_channels`
 - `kick_get_livestreams`
 - `kick_get_livestream_stats`
@@ -112,7 +113,7 @@ Use explicit confirmation:
 
 - Never commit `.env`, `.kick-tokens.json`, client secrets, access tokens, or refresh tokens.
 - Do not run write tools in tests unless the user explicitly gives a target and confirms the action.
-- Treat chat sends, chat deletes, moderation, reward writes, and event-subscription writes as explicit-confirmation actions.
+- Treat token revocation, chat sends, chat deletes, moderation, reward writes, and event-subscription writes as explicit-confirmation actions.
 - Keep claims aligned to official Kick docs. Do not add polls, predictions, stream start/stop, historical chat-log reads, or unofficial chat listening unless Kick documents those endpoints.
 
 ## Current Auth Reality

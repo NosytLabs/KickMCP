@@ -218,6 +218,7 @@ npm run pack:check
 These tools can change Kick state and should require explicit human confirmation in AI clients:
 
 - `kick_update_channel`
+- `kick_revoke_token`
 - `kick_send_chat_message`
 - `kick_delete_chat_message`
 - reward create/update/delete tools

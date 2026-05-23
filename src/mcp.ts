@@ -22,6 +22,7 @@ import {
   moderateBan,
   removeModerationBan,
   resolveRewardRedemptions,
+  revokeKickToken,
   sendChatMessage,
   updateChannel,
   updateChannelReward,
@@ -51,6 +52,8 @@ import {
   listKickEventsInput,
   moderateKickUserInput,
   resolveKickRedemptionsInput,
+  revokeKickTokenInput,
+  revokeKickTokenOutput,
   rewardIdInput,
   sendKickChatInput,
   sendKickChatOutput,
@@ -99,6 +102,18 @@ export function createMcpServer() {
     annotations: { readOnlyHint: true },
     _meta: meta("Introspecting Kick token", "Kick token introspected"),
   }, async (input) => ({ structuredContent: { data: await introspectKickToken(input) }, content: text("Introspected Kick token.") }));
+
+  server.registerTool("kick_revoke_token", {
+    title: "Revoke Kick Token",
+    description: "Revoke a configured Kick access or refresh token through the official OAuth revoke endpoint. This invalidates the selected token and requires explicit approval.",
+    inputSchema: revokeKickTokenInput,
+    outputSchema: revokeKickTokenOutput,
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
+    _meta: meta("Revoking Kick token", "Kick token revoked"),
+  }, async (input) => {
+    const result = await revokeKickToken(input);
+    return { structuredContent: result, content: text(`Revoked Kick ${result.token_source} token.`) };
+  });
 
   server.registerTool(
     "kick_get_channels",

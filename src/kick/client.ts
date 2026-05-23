@@ -257,6 +257,43 @@ export async function introspectKickToken(input: { token_source?: "app" | "user"
   return requestOauth<unknown>("/oauth/token/introspect", token);
 }
 
+export async function revokeKickToken(input: {
+  token_source?: "app" | "user" | "bot" | "stored_user_refresh";
+  token_type_hint?: "access_token" | "refresh_token";
+} = {}) {
+  const tokenSource = input.token_source ?? "user";
+  const storedTokens = tokenSource === "stored_user_refresh" ? readStoredKickTokens() : undefined;
+  const token =
+    tokenSource === "app"
+      ? await getAppAccessToken()
+      : tokenSource === "bot"
+        ? config.kickBotAccessToken
+        : tokenSource === "stored_user_refresh"
+          ? storedTokens?.refresh_token
+          : await getUserAccessToken("token revocation");
+
+  if (!token) {
+    throw new Error(`Missing configured token for ${tokenSource} token revocation.`);
+  }
+
+  const url = new URL("/oauth/revoke", config.kickOauthBaseUrl);
+  url.searchParams.set("token", token);
+  if (input.token_type_hint) url.searchParams.set("token_type_hint", input.token_type_hint);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { accept: "application/json" },
+    signal: requestSignal(),
+  });
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => "");
+    throw new KickApiError(message || "Kick OAuth token revoke failed.", response.status);
+  }
+
+  return { revoked: true, token_source: tokenSource };
+}
+
 export async function updateChannel(input: {
   stream_title?: string;
   category_id?: number;
