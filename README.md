@@ -89,7 +89,7 @@ The OAuth callback stores `.kick-tokens.json` locally. Keep it private; it is ig
 
 ## MCP Client Setup
 
-Stdio:
+Stdio is the easiest option for Claude Desktop, Claude Code, Codex, and local MCP clients:
 
 ```json
 {
@@ -129,6 +129,14 @@ Health check:
 ```text
 GET http://localhost:8787/health
 ```
+
+Use the local skill file when working inside agent environments that support skills:
+
+```text
+SKILL.md
+```
+
+The skill gives agents the safe workflow: run smoke tests, prefer read-only tools, require confirmation for writes, and avoid unsupported Kick claims.
 
 ## Webhooks
 
@@ -223,6 +231,15 @@ OpenClaw, Hermes, Codex, Claude Desktop, and other MCP-capable agents can use Ki
 - Webhook developer: subscribe to events, verify signatures, and test idempotent event handling.
 - Drops developer: retrieve claim data when the OAuth app belongs to the relevant Kick organization.
 
+Example agent prompts:
+
+- "List the top 5 live Kick streams with slug, category, title, and viewer count."
+- "Find the best Kick category for a stream about retro game speedruns."
+- "Check whether my configured Kick token is active and tell me which workflows are available."
+- "Draft a stream title update, but do not apply it until I confirm."
+- "Prepare a chat announcement for my channel; wait for approval before sending."
+- "Verify this webhook payload and explain whether it is fresh, signed, and non-duplicate."
+
 ## Live Verification
 
 Run:
@@ -236,7 +253,7 @@ npm run live:read
 
 `npm run live:read` prints read-only example results from the live Kick API without printing secrets. Values such as top livestreams and viewer counts are ephemeral.
 
-Last verified with Kickmunk app credentials on 2026-05-21:
+Last verified with local Kick app credentials on 2026-05-23:
 
 - app token introspection returned active app token metadata
 - livestream stats returned a live total count
@@ -274,6 +291,7 @@ npm run start
 See:
 
 - [docs/setup.md](docs/setup.md)
+- [docs/agent-use-cases.md](docs/agent-use-cases.md)
 - [docs/kick-api-coverage.md](docs/kick-api-coverage.md)
 - [docs/live-read-examples.md](docs/live-read-examples.md)
 
@@ -288,6 +306,10 @@ This server avoids stale claims from older cached KickMCP directory listings. No
 ## Security
 
 Never commit `.env`, `.kick-tokens.json`, client secrets, access tokens, or refresh tokens. The Kick client secret used for local testing was supplied out-of-band for this workspace and should be rotated if it was exposed anywhere public.
+
+## Support
+
+If KickMCP helps you, you can support the maintainer by sending a sub to https://www.kick.com/tycen.
 
 ## License
 

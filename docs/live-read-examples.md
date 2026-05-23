@@ -8,14 +8,14 @@ npm run live:read
 
 The script prints live read-only examples from the configured Kick OAuth app credentials. It never prints client secrets, access tokens, or refresh tokens.
 
-Snapshot from 2026-05-21 using the local Kickmunk app credentials:
+Snapshot from 2026-05-23 using local Kick app credentials:
 
 ```json
 {
-  "timestamp": "2026-05-21T16:15:02.019Z",
-  "top_livestream_slugs": ["korekore_ch", "absi", "purplebixi"],
+  "timestamp": "2026-05-23T19:46:49.881Z",
+  "top_livestream_slugs": ["korekore_ch", "maherco", "eray"],
   "livestream_stats": {
-    "total_count": 9419
+    "total_count": 14122
   },
   "event_subscriptions": [],
   "label": "app_token_introspection",

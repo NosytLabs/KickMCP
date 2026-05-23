@@ -18,7 +18,9 @@
   },
   "files": [
     "dist",
+    "docs",
     "README.md",
+    "SKILL.md",
     "LICENSE",
     "server.json",
     ".env.example"

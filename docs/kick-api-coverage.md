@@ -82,7 +82,7 @@ These are not implemented because they are not official public API endpoints in 
 
 ## Auth Notes
 
-App access tokens work for many public reads and event subscription operations. Live testing with the Kickmunk app credentials showed `/public/v1/users?id=...` can return `401 Unauthorized` with only an app token, so user-profile workflows should use a user token with `user:read`.
+App access tokens work for many public reads and event subscription operations. Live testing with local app credentials showed `/public/v1/users?id=...` can return `401 Unauthorized` with only an app token, so user-profile workflows should use a user token with `user:read`.
 
 User access tokens are required for broadcaster-scoped reads/actions and write tools. KickMCP stores OAuth callback tokens in `.kick-tokens.json` and refreshes them automatically when a refresh token is available.
 

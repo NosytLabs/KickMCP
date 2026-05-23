@@ -35,7 +35,7 @@ if (forbidden.length) {
   process.exit(1);
 }
 
-for (const required of ["dist/stdio.js", "dist/server.js", "dist/mcp.js", "README.md", "server.json"]) {
+for (const required of ["dist/stdio.js", "dist/server.js", "dist/mcp.js", "README.md", "SKILL.md", "server.json", "docs/setup.md", "docs/agent-use-cases.md"]) {
   if (!files.includes(required)) {
     console.error(`Package is missing required file: ${required}`);
     process.exit(1);

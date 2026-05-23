@@ -59,6 +59,32 @@ This is the full developer/admin MCP surface for local tools, coding agents, Ope
 
 For hosted HTTP use, set `MCP_REQUIRE_AUTH=true` and `MCP_AUTH_TOKEN` so `/mcp` requires a bearer token.
 
+## Agent Setup
+
+Use stdio for Claude Desktop, Claude Code, Codex, and other local agent clients when possible:
+
+```json
+{
+  "mcpServers": {
+    "kick": {
+      "command": "kick-mcp",
+      "env": {
+        "KICK_CLIENT_ID": "your-client-id",
+        "KICK_CLIENT_SECRET": "your-client-secret"
+      }
+    }
+  }
+}
+```
+
+Use Streamable HTTP for local dashboards, hosted agents, or remote MCP clients:
+
+```text
+http://localhost:8787/mcp
+```
+
+Require `MCP_AUTH_TOKEN` for any HTTP endpoint that is reachable outside localhost.
+
 ## Recommended Workflows
 
 ### Read-Only Discovery
@@ -66,7 +92,6 @@ For hosted HTTP use, set `MCP_REQUIRE_AUTH=true` and `MCP_AUTH_TOKEN` so `/mcp` 
 Use:
 
 - `kick_introspect_token`
-- `kick_revoke_token`
 - `kick_get_channels`
 - `kick_get_livestreams`
 - `kick_get_livestream_stats`
@@ -92,6 +117,7 @@ Use only with a user token and explicit confirmation:
 
 Use explicit confirmation:
 
+- token revocation
 - webhook subscription create/delete
 - Drops claim retrieval
 - webhook signature verification
@@ -102,11 +128,12 @@ Use explicit confirmation:
 
 ### Agent Prompts
 
-- "List top live Kick streams and summarize the first result."
-- "Look up channel slug `example` and show the broadcaster ID."
+- "List top live Kick streams and summarize the first result with slug, category, and viewer count."
+- "Look up channel slug `example` and show the broadcaster ID, category, title, and subscriber count."
 - "Find categories matching `Minecraft`, then get detail for the best category ID."
-- "Check whether this configured Kick token is active."
-- "Draft a Kick chat announcement, but do not send it."
+- "Check whether this configured Kick token is active and explain which scopes are available."
+- "Draft a Kick chat announcement, but do not send it until I approve the exact text and target channel."
+- "Subscribe this app to `chat.message.sent` for broadcaster ID `...` after I confirm the webhook URL."
 - "Verify this Kick webhook signature with the raw body and headers."
 - "Fetch Drops claims for campaign ID `...` if this app is authorized."
 
@@ -145,3 +172,8 @@ Then update:
 - `scripts/smoke-test.mjs`
 - `scripts/live-read-examples.mjs`
 - `docs/kick-api-coverage.md`
+- `docs/agent-use-cases.md` when agent workflows or safety categories change
+
+## Support Note
+
+If editing user-facing docs, keep the optional support line in README concise: "If KickMCP helps you, you can support the maintainer by sending a sub to https://www.kick.com/tycen."

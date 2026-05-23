@@ -69,7 +69,7 @@ Kick may unsubscribe apps whose webhook endpoint fails for an extended period, s
 
 Drops are organization-oriented. The Drops guide documents `GET /public/v1/drops/claims`, and KickMCP exposes it as `kick_get_drops_claims`.
 
-This endpoint needs app credentials associated with the relevant Kick organization. Live testing with the Kickmunk app credentials returned an authorization/internal boundary error, which is expected for an app that is not tied to a Drops organization.
+This endpoint needs app credentials associated with the relevant Kick organization. Live testing with local app credentials returned an authorization/internal boundary error, which is expected for an app that is not tied to a Drops organization.
 
 ## Chat Logs
 
